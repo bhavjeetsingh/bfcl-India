@@ -1,0 +1,15 @@
+# Core data + validation
+jsonschema>=4.21.0
+datasets>=2.18.0
+huggingface-hub>=0.23.0
+
+# LLM clients (free-tier baselines + synthetic data generation)
+google-generativeai>=0.8.0
+groq>=0.11.0
+openai>=1.40.0          # used for OpenRouter (OpenAI-compatible API)
+
+# Utilities
+python-dotenv>=1.0.1
+requests>=2.32.0
+tqdm>=4.66.0
+pandas>=2.2.0
