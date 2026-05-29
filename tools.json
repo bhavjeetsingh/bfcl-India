@@ -1,0 +1,201 @@
+[
+  {
+    "name": "upi_send",
+    "description": "Send money via UPI from the user's linked bank account to a recipient's Virtual Payment Address (VPA) or UPI ID. Use this when the user wants to pay, transfer, or send money to a specific person, merchant, or VPA. Do NOT use for collecting/requesting money (use upi_collect) or for recurring payments (use upi_mandate_create).",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "recipient_vpa": {
+          "type": "string",
+          "description": "Recipient's UPI VPA in the format username@bank (e.g., 'rohit@okhdfc', 'merchant@paytm', '9876543210@ybl').",
+          "pattern": "^[a-zA-Z0-9._-]{3,256}@[a-zA-Z]{2,64}$"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount to send in the specified currency. UPI per-transaction limit is INR 1,00,000 for most banks.",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "currency": {
+          "type": "string",
+          "description": "ISO currency code. UPI currently supports only INR.",
+          "enum": ["INR"],
+          "default": "INR"
+        },
+        "note": {
+          "type": "string",
+          "description": "Optional remark visible to the recipient (e.g., 'rent for May', 'chai').",
+          "maxLength": 50
+        },
+        "source_account_last_four": {
+          "type": "string",
+          "description": "Last 4 digits of the user's bank account to debit from. If omitted, the primary UPI-linked account is used.",
+          "pattern": "^[0-9]{4}$"
+        }
+      },
+      "required": ["recipient_vpa", "amount"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "upi_collect",
+    "description": "Send a UPI collect request (request money) to another user's VPA. The payer receives a notification and must approve the request from their UPI app. Use this when the user wants to request, ask for, or charge money. Do NOT use to send money (use upi_send).",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "payer_vpa": {
+          "type": "string",
+          "description": "VPA of the person from whom money is being requested.",
+          "pattern": "^[a-zA-Z0-9._-]{3,256}@[a-zA-Z]{2,64}$"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount being requested in INR.",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "note": {
+          "type": "string",
+          "description": "Reason for the request, shown to the payer.",
+          "maxLength": 50
+        },
+        "expiry_minutes": {
+          "type": "integer",
+          "description": "Time in minutes after which the collect request auto-expires if unattended.",
+          "minimum": 5,
+          "maximum": 1440,
+          "default": 30
+        }
+      },
+      "required": ["payer_vpa", "amount", "note"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "check_upi_balance",
+    "description": "Fetch the current available balance of one of the user's UPI-linked bank accounts. The user is prompted by their UPI app to enter UPI PIN; the PIN is never passed as a function argument. Use when the user asks for balance, available funds, or account balance.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "account_last_four": {
+          "type": "string",
+          "description": "Last 4 digits of the bank account to check. If omitted, the primary UPI-linked account is used.",
+          "pattern": "^[0-9]{4}$"
+        },
+        "include_pending": {
+          "type": "boolean",
+          "description": "If true, also include pending/unsettled transactions in the response.",
+          "default": false
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "upi_mandate_create",
+    "description": "Create a UPI AutoPay mandate authorising a merchant to debit recurring payments (subscriptions, EMI, SIP, utility autopay) from the user's account on a fixed schedule. Use for recurring/automatic payment setup. Do NOT use for one-time payments (use upi_send).",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "merchant_vpa": {
+          "type": "string",
+          "description": "VPA of the merchant collecting the recurring payment.",
+          "pattern": "^[a-zA-Z0-9._-]{3,256}@[a-zA-Z]{2,64}$"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Per-cycle debit amount in INR. For VARIABLE mandates this is the typical amount; max_amount caps it.",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "frequency": {
+          "type": "string",
+          "description": "How often the mandate executes.",
+          "enum": ["DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "HALF_YEARLY", "YEARLY", "AS_PRESENTED"]
+        },
+        "mandate_type": {
+          "type": "string",
+          "description": "FIXED debits the same amount each cycle. VARIABLE allows the merchant to debit any amount up to max_amount.",
+          "enum": ["FIXED", "VARIABLE"],
+          "default": "FIXED"
+        },
+        "max_amount": {
+          "type": "number",
+          "description": "Required for VARIABLE mandates. Upper bound on per-cycle debit.",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "start_date": {
+          "type": "string",
+          "description": "First debit date in ISO 8601 format (YYYY-MM-DD).",
+          "format": "date"
+        },
+        "end_date": {
+          "type": "string",
+          "description": "Last allowed debit date in ISO 8601 format (YYYY-MM-DD). Use '2099-12-31' for open-ended mandates.",
+          "format": "date"
+        },
+        "purpose": {
+          "type": "string",
+          "description": "Short label for the mandate shown to the user (e.g., 'Netflix subscription', 'SIP - HDFC Flexi Cap').",
+          "maxLength": 80
+        }
+      },
+      "required": ["merchant_vpa", "amount", "frequency", "start_date", "end_date", "purpose"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "upi_transaction_history",
+    "description": "Fetch the user's UPI transaction history with optional filters by date range, direction, amount range, or counterparty. Use when the user asks to see past payments, recent transactions, statement, or spending history.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "days": {
+          "type": "integer",
+          "description": "Look back this many days from today. Use 7 for 'last week', 30 for 'last month', 365 for 'last year'.",
+          "minimum": 1,
+          "maximum": 365,
+          "default": 30
+        },
+        "transaction_type": {
+          "type": "string",
+          "description": "Filter by direction: SENT (debits), RECEIVED (credits), or ALL.",
+          "enum": ["SENT", "RECEIVED", "ALL"],
+          "default": "ALL"
+        },
+        "counterparty_vpa": {
+          "type": "string",
+          "description": "If set, return only transactions to/from this specific VPA.",
+          "pattern": "^[a-zA-Z0-9._-]{3,256}@[a-zA-Z]{2,64}$"
+        },
+        "min_amount": {
+          "type": "number",
+          "description": "Filter to transactions with amount >= this value (INR).",
+          "minimum": 0
+        },
+        "max_amount": {
+          "type": "number",
+          "description": "Filter to transactions with amount <= this value (INR).",
+          "minimum": 0
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of transactions to return.",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20
+        },
+        "status_filter": {
+          "type": "string",
+          "description": "Filter by transaction outcome.",
+          "enum": ["SUCCESS", "FAILED", "PENDING", "ALL"],
+          "default": "ALL"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    }
+  }
+]
