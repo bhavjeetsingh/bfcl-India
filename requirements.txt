@@ -3,10 +3,17 @@ jsonschema>=4.21.0
 datasets>=2.18.0
 huggingface-hub>=0.23.0
 
-# LLM clients (free-tier baselines + synthetic data generation)
+# LLM clients (free-tier baselines + synthetic data generation + eval)
 google-generativeai>=0.8.0
 groq>=0.11.0
 openai>=1.40.0          # used for OpenRouter (OpenAI-compatible API)
+
+# Local HuggingFace eval backend (eval.py --provider hf)
+# Heavy — only install if you plan to run a local model on GPU.
+# On Kaggle / Colab, install separately in the notebook instead.
+transformers>=4.45.0
+accelerate>=0.34.0
+torch>=2.4.0
 
 # Utilities
 python-dotenv>=1.0.1
