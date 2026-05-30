@@ -1,0 +1,309 @@
+[
+  {
+    "id": "bfcl_india_simple_001",
+    "category": "simple",
+    "available_tools": ["upi_send"],
+    "language": "hinglish",
+    "messages": [
+      {
+        "role": "user",
+        "content": "paaji ko 500 rupees bhej de upi pe, unka id paaji@okaxis hai, note me chai likh dena"
+      }
+    ],
+    "ground_truth": {
+      "predicted_calls": [
+        {
+          "tool": "upi_send",
+          "args": {
+            "recipient_vpa": "paaji@okaxis",
+            "amount": 500,
+            "currency": "INR",
+            "note": "chai"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "bfcl_india_simple_002",
+    "category": "simple",
+    "available_tools": ["bms_search_movie"],
+    "language": "english",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Find me Tamil movies playing in Chennai this Saturday in IMAX format"
+      }
+    ],
+    "ground_truth": {
+      "predicted_calls": [
+        {
+          "tool": "bms_search_movie",
+          "args": {
+            "city": "Chennai",
+            "show_date": "2026-05-30",
+            "language": "TAMIL",
+            "format": "IMAX"
+          }
+        }
+      ]
+    },
+    "notes": "Saturday relative to seed date 2026-05-29 → 2026-05-30. When generating with Gemini, dates must be normalised against a fixed 'as_of_date' to keep ground truth deterministic."
+  },
+  {
+    "id": "bfcl_india_multiple_001",
+    "category": "multiple",
+    "available_tools": ["irctc_search_trains", "irctc_book_ticket", "irctc_pnr_status"],
+    "language": "english",
+    "messages": [
+      {
+        "role": "user",
+        "content": "What's the status of my train booking? PNR is 8456712390."
+      }
+    ],
+    "ground_truth": {
+      "predicted_calls": [
+        {
+          "tool": "irctc_pnr_status",
+          "args": {
+            "pnr_number": "8456712390"
+          }
+        }
+      ]
+    },
+    "notes": "Tests disambiguation across the 3 IRCTC tools. The word 'booking' is a distractor that pulls toward irctc_book_ticket; the real intent is status check."
+  },
+  {
+    "id": "bfcl_india_multiple_002",
+    "category": "multiple",
+    "available_tools": ["swiggy_search_restaurant", "zomato_place_order", "swiggy_track_delivery", "cancel_food_order"],
+    "language": "hinglish",
+    "messages": [
+      {
+        "role": "user",
+        "content": "yaar mera khana kaha hai? order id BLR-9482-XK on swiggy"
+      }
+    ],
+    "ground_truth": {
+      "predicted_calls": [
+        {
+          "tool": "swiggy_track_delivery",
+          "args": {
+            "platform": "SWIGGY",
+            "order_id": "BLR-9482-XK"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "bfcl_india_parallel_001",
+    "category": "parallel",
+    "available_tools": ["block_card", "request_chequebook", "account_balance"],
+    "language": "english",
+    "messages": [
+      {
+        "role": "user",
+        "content": "I lost my HDFC debit card ending 4521. Block it immediately and also order a fresh chequebook for the same account 50100123456789, IFSC HDFC0000234. 25 leaves is fine."
+      }
+    ],
+    "ground_truth": {
+      "predicted_calls": [
+        {
+          "tool": "block_card",
+          "args": {
+            "card_type": "DEBIT",
+            "card_last_four": "4521",
+            "reason": "LOST",
+            "request_replacement": true
+          }
+        },
+        {
+          "tool": "request_chequebook",
+          "args": {
+            "ifsc": "HDFC0000234",
+            "account_number": "50100123456789",
+            "leaves": 25
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "bfcl_india_parallel_002",
+    "category": "parallel",
+    "available_tools": ["electricity_bill_pay", "water_bill_pay", "gas_book_cylinder"],
+    "language": "english",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Please pay my BESCOM electricity bill (consumer 1234567890) and BWSSB water bill (consumer WB-77821). Pay full outstanding on both."
+      }
+    ],
+    "ground_truth": {
+      "predicted_calls": [
+        {
+          "tool": "electricity_bill_pay",
+          "args": {
+            "discom_code": "BESCOM",
+            "consumer_number": "1234567890"
+          }
+        },
+        {
+          "tool": "water_bill_pay",
+          "args": {
+            "water_board": "BWSSB",
+            "consumer_number": "WB-77821"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "bfcl_india_multiturn_001",
+    "category": "multi_turn",
+    "available_tools": ["irctc_search_trains", "irctc_book_ticket"],
+    "language": "english",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Book a 3AC seat from New Delhi to Mumbai Central on 2026-06-15 for me — Bhavjeet Singh, age 23, male."
+      },
+      {
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "tool": "irctc_search_trains",
+            "args": {
+              "source_station_code": "NDLS",
+              "destination_station_code": "BCT",
+              "travel_date": "2026-06-15",
+              "travel_class": "3A"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_name": "irctc_search_trains",
+        "content": "{\"trains\":[{\"number\":\"12951\",\"name\":\"Mumbai Rajdhani\",\"departs\":\"16:25\",\"arrives_next_day\":\"08:35\",\"3A_seats_available\":\"AVL 12\"},{\"number\":\"12953\",\"name\":\"August Kranti Rajdhani\",\"departs\":\"17:40\",\"arrives_next_day\":\"10:55\",\"3A_seats_available\":\"WL 18\"}]}"
+      },
+      {
+        "role": "user",
+        "content": "Go with the Rajdhani."
+      }
+    ],
+    "ground_truth": {
+      "predicted_calls": [
+        {
+          "tool": "irctc_book_ticket",
+          "args": {
+            "train_number": "12951",
+            "source_station_code": "NDLS",
+            "destination_station_code": "BCT",
+            "travel_date": "2026-06-15",
+            "travel_class": "3A",
+            "passengers": [
+              {
+                "name": "Bhavjeet Singh",
+                "age": 23,
+                "gender": "M"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "notes": "Two-turn trajectory: search → book. Tool result is supplied as a JSON-string payload in the 'tool' role message. Model must pick train 12951 (the Rajdhani user named) over 12953."
+  },
+  {
+    "id": "bfcl_india_multiturn_002",
+    "category": "multi_turn",
+    "available_tools": ["pharm_easy_order"],
+    "language": "hinglish",
+    "messages": [
+      {
+        "role": "user",
+        "content": "PharmEasy se Crocin 500mg 2 strip aur Dolo 650 1 strip mangwa do, ghar pe — pincode 110092"
+      },
+      {
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "tool": "pharm_easy_order",
+            "args": {
+              "platform": "PHARMEASY",
+              "medicines": [
+                {"name": "Crocin 500mg", "quantity": 2},
+                {"name": "Dolo 650", "quantity": 1}
+              ],
+              "delivery_address": {
+                "label": "HOME",
+                "pincode": "110092"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_name": "pharm_easy_order",
+        "content": "{\"status\":\"REQUIRES_PRESCRIPTION\",\"message\":\"Dolo 650 requires a valid prescription. Please attach one.\"}"
+      },
+      {
+        "role": "user",
+        "content": "achha theek hai, sirf Crocin order kar de"
+      }
+    ],
+    "ground_truth": {
+      "predicted_calls": [
+        {
+          "tool": "pharm_easy_order",
+          "args": {
+            "platform": "PHARMEASY",
+            "medicines": [
+              {"name": "Crocin 500mg", "quantity": 2}
+            ],
+            "delivery_address": {
+              "label": "HOME",
+              "pincode": "110092"
+            }
+          }
+        }
+      ]
+    },
+    "notes": "Tests the model's ability to drop one item from a previously-built cart in response to a tool error result. Common real-world agentic recovery."
+  },
+  {
+    "id": "bfcl_india_irrelevance_001",
+    "category": "irrelevance",
+    "available_tools": ["upi_send", "check_upi_balance", "account_balance"],
+    "language": "english",
+    "messages": [
+      {
+        "role": "user",
+        "content": "What's the weather like in Bengaluru tomorrow? Should I carry an umbrella?"
+      }
+    ],
+    "ground_truth": {
+      "predicted_calls": []
+    },
+    "notes": "No weather tool in the registry. Correct behaviour is to refuse / answer in natural language without emitting a tool call."
+  },
+  {
+    "id": "bfcl_india_irrelevance_002",
+    "category": "irrelevance",
+    "available_tools": ["recharge_mobile", "pay_postpaid", "check_data_balance"],
+    "language": "hinglish",
+    "messages": [
+      {
+        "role": "user",
+        "content": "bhai mujhe is hindi sentence ko english me translate karke do: 'mera bhai aaj market gaya hai aur shaam tak wapas aayega'"
+      }
+    ],
+    "ground_truth": {
+      "predicted_calls": []
+    },
+    "notes": "Pure translation request. None of the available tools are applicable. Tests calibration — model must NOT force-fit one of the recharge tools."
+  }
+]

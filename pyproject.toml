@@ -10,5 +10,6 @@ dependencies = [
     "groq>=1.4.0",
     "huggingface-hub>=1.17.0",
     "jsonschema>=4.26.0",
+    "openai>=2.38.0",
     "python-dotenv>=1.2.2",
 ]
