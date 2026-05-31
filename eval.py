@@ -74,23 +74,45 @@ def load_tools() -> dict[str, dict[str, Any]]:
     return {t["name"]: t for t in json.loads(TOOLS_PATH.read_text(encoding="utf-8"))}
 
 
-def load_examples(shuffle_seed: int = 42) -> list[dict[str, Any]]:
-    """Load all examples from data/generated/*.jsonl, then deterministic shuffle.
+def load_examples(shuffle_seed: int = 42, split: str = "all") -> list[dict[str, Any]]:
+    """Load BFCL-India examples.
 
-    Shuffling matters for partial runs: if quota hits mid-eval, the examples seen
-    so far are a representative sample across all 5 categories instead of one.
-    Seeded so reruns are reproducible — same seed → same order.
+    split=
+      "all"  -> the original 421-example pool (data/generated/*.jsonl)
+      "dev"  -> data/eval/dev.jsonl     (used freely during HP tuning)
+      "test" -> data/eval/test.jsonl    (secret split — run ONCE after final HP selection)
+
+    Shuffling matters for partial runs: if quota hits mid-eval, the examples
+    seen so far are spread across all 5 categories instead of one. Seeded so
+    reruns are reproducible.
     """
     examples: list[dict[str, Any]] = []
-    for path in sorted(DATA_DIR.glob("*.jsonl")):
+    if split == "dev":
+        path = ROOT / "data" / "eval" / "dev.jsonl"
+        if not path.exists():
+            raise SystemExit(f"{path} missing — run `python split_test_set.py` first.")
         for line in path.read_text(encoding="utf-8").splitlines():
             line = line.strip()
-            if not line:
-                continue
-            try:
+            if line:
                 examples.append(json.loads(line))
-            except json.JSONDecodeError:
-                continue
+    elif split == "test":
+        path = ROOT / "data" / "eval" / "test.jsonl"
+        if not path.exists():
+            raise SystemExit(f"{path} missing — run `python split_test_set.py` first.")
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line:
+                examples.append(json.loads(line))
+    else:
+        for path in sorted(DATA_DIR.glob("*.jsonl")):
+            for line in path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    examples.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
     rng = random.Random(shuffle_seed)
     rng.shuffle(examples)
     return examples
@@ -323,8 +345,14 @@ def parse_predicted_calls(raw: str) -> tuple[list[dict[str, Any]] | None, str]:
 # ----------------------------------------------------------------------------
 
 
-def score_call(predicted: dict[str, Any], gold: dict[str, Any], tools_idx: dict[str, dict[str, Any]]) -> dict[str, Any]:
-    """Score a single (predicted, gold) tool call pair."""
+def score_call(predicted: dict[str, Any], gold: dict[str, Any], tools_idx: dict[str, dict[str, Any]], lenient: bool = False) -> dict[str, Any]:
+    """Score a single (predicted, gold) tool call pair.
+
+    lenient=True drops the schema_compliant gate from `fully_correct`. Use this
+    to estimate production-style accuracy: real agents try the call and fail
+    at the API layer, they don't pre-validate against JSON Schema. The
+    schema_compliant flag is still reported for reference.
+    """
     p_tool = predicted.get("tool")
     g_tool = gold.get("tool")
     tool_name_correct = p_tool == g_tool
@@ -363,7 +391,7 @@ def score_call(predicted: dict[str, Any], gold: dict[str, Any], tools_idx: dict[
             matching += 1
     arg_values_match = (matching / total) if total else 1.0
 
-    fully_correct = tool_name_correct and schema_compliant and arg_values_match == 1.0
+    fully_correct = tool_name_correct and arg_values_match == 1.0 and (lenient or schema_compliant)
 
     return {
         "tool_name_correct": tool_name_correct,
@@ -393,7 +421,7 @@ def values_match(p: Any, g: Any) -> bool:
     return p == g
 
 
-def score_example(ex: dict[str, Any], predicted_calls: list[dict[str, Any]] | None, tools_idx: dict[str, dict[str, Any]]) -> dict[str, Any]:
+def score_example(ex: dict[str, Any], predicted_calls: list[dict[str, Any]] | None, tools_idx: dict[str, dict[str, Any]], lenient: bool = False) -> dict[str, Any]:
     """Score a single eval example."""
     category = ex["category"]
     gold_calls = ex["ground_truth"]["predicted_calls"]
@@ -438,7 +466,7 @@ def score_example(ex: dict[str, Any], predicted_calls: list[dict[str, Any]] | No
             for i, p in enumerate(predicted_calls):
                 if used[i]:
                     continue
-                s = score_call(p, g, tools_idx)
+                s = score_call(p, g, tools_idx, lenient=lenient)
                 if s["fully_correct"]:
                     used[i] = True
                     matched = True
@@ -455,7 +483,7 @@ def score_example(ex: dict[str, Any], predicted_calls: list[dict[str, Any]] | No
 
     g = gold_calls[0]
     p = predicted_calls[0]
-    s = score_call(p, g, tools_idx)
+    s = score_call(p, g, tools_idx, lenient=lenient)
     failure = None
     if not s["fully_correct"]:
         if not s["tool_name_correct"]:
@@ -536,16 +564,33 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=None, help="Eval only the first N examples (smoke test)")
     parser.add_argument("--sleep", type=float, default=0.0, help="Sleep between API calls (seconds)")
     parser.add_argument("--label", default=None, help="Override report file name")
+    parser.add_argument("--split", choices=["all", "dev", "test"], default="dev",
+                        help="Which split to evaluate. dev = use freely during HP tuning. "
+                             "test = the secret 100-example split, run EXACTLY ONCE after final HP "
+                             "selection. all = the full 421-example pool (legacy / sanity).")
+    parser.add_argument("--lenient", action="store_true",
+                        help="Production-style scoring: drop strict JSON Schema gating, only "
+                             "require correct tool name + matching arg values. Lenient scores "
+                             "are an upper-ish bound for real agent deployment.")
     args = parser.parse_args()
 
     load_dotenv()
 
-    label = args.label or args.model.replace("/", "_").replace(":", "_")
+    base_label = args.label or args.model.replace("/", "_").replace(":", "_")
+    # Suffix split so dev runs and the secret test run don't share files.
+    label = f"{base_label}_{args.split}"
     pred_path = REPORTS_DIR / f"{label}_predictions.jsonl"
     report_path = REPORTS_DIR / f"{label}_report.json"
 
+    if args.split == "test":
+        print("=" * 60)
+        print("WARNING: Running on the SECRET TEST split.")
+        print("This split should be evaluated EXACTLY ONCE per model,")
+        print("AFTER final hyperparameter selection on the dev split.")
+        print("=" * 60)
+
     tools_idx = load_tools()
-    examples = load_examples()
+    examples = load_examples(split=args.split)
     if args.limit:
         examples = examples[: args.limit]
 
@@ -564,7 +609,7 @@ def main() -> None:
             if ex_id in seen:
                 cached = seen[ex_id]
                 calls = cached.get("predicted_calls")
-                row = score_example(ex, calls, tools_idx)
+                row = score_example(ex, calls, tools_idx, lenient=args.lenient)
                 row["id"] = ex_id
                 rows.append(row)
                 continue
@@ -622,7 +667,7 @@ def main() -> None:
             fout.flush()
             seen[ex_id] = record
 
-            row = score_example(ex, calls, tools_idx)
+            row = score_example(ex, calls, tools_idx, lenient=args.lenient)
             row["id"] = ex_id
             rows.append(row)
 
