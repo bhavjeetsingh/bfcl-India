@@ -1,0 +1,28 @@
+{
+  "overall_weighted": 0.771,
+  "overall_unweighted": 0.7746,
+  "json_validity_pct": 1.0,
+  "per_category_accuracy": {
+    "simple": 0.68,
+    "irrelevance": 0.9,
+    "parallel": 0.625,
+    "multiple": 0.8235,
+    "multi_turn": 0.9091
+  },
+  "per_category_count": {
+    "simple": 25,
+    "irrelevance": 10,
+    "parallel": 8,
+    "multiple": 17,
+    "multi_turn": 11
+  },
+  "failure_modes": {
+    "arg_values_off": 11,
+    "parallel_mismatch": 3,
+    "empty_calls_when_required": 1,
+    "should_have_refused": 1
+  },
+  "n_examples": 71,
+  "model_label": "llama-3.3-70b-versatile",
+  "note": "Partial run \u2014 scored 71 of 421 examples"
+}
