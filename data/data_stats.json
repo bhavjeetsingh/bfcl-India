@@ -1,0 +1,19 @@
+{
+  "raw_per_source": {
+    "glaive": 2361,
+    "xlam": 60000,
+    "apigen": 0,
+    "bfcl": 8
+  },
+  "after_dedup": 58504,
+  "final_per_source": {
+    "xlam": 29644,
+    "glaive": 348,
+    "bfcl_seeds": 8
+  },
+  "train_count": 27000,
+  "val_count": 3000,
+  "max_train": 30000,
+  "val_frac": 0.1,
+  "seed": 42
+}
