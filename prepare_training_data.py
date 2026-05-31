@@ -211,6 +211,31 @@ def parse_apigen_mt(path: Path) -> Iterator[dict[str, Any]]:
             continue
 
 
+def parse_indian_train(path: Path) -> Iterator[dict[str, Any]]:
+    """BFCL-India training set produced by generate_indian_training.py +
+    generate_topup.py. Records are already in the {messages, tools, calls}
+    shape this script's pipeline expects — we normalise the source label so
+    the main run + top-up records share a single bucket in target_mix."""
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            r = json.loads(line)
+            if not r.get("messages") or not r.get("tools"):
+                continue
+            yield {
+                "messages": r["messages"],
+                "tools": r["tools"],
+                "calls": r.get("calls", []),
+                "source": "indian_train",  # collapse main + topup labels
+            }
+        except Exception:
+            continue
+
+
 def parse_bfcl_seeds(path: Path) -> Iterator[dict[str, Any]]:
     """BFCL-India hand-written seeds — high-quality Indian-context examples.
 
@@ -305,9 +330,16 @@ def query_hash(rec: dict[str, Any]) -> str:
 
 
 def looks_valid(rec: dict[str, Any]) -> bool:
-    if not rec.get("tools") or not rec.get("calls") or not rec.get("messages"):
+    if not rec.get("tools") or not rec.get("messages"):
         return False
-    for c in rec["calls"]:
+    calls = rec.get("calls")
+    # Empty list is OK — refusal training data has calls=[] on purpose.
+    # None means the parser didn't extract any structure, which is broken.
+    if calls is None:
+        return False
+    if not isinstance(calls, list):
+        return False
+    for c in calls:
         if not c.get("tool") or not isinstance(c.get("args"), dict):
             return False
     return True
@@ -325,7 +357,7 @@ def main() -> None:
     parser.add_argument("--val-frac", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--skip", action="append", default=[],
-                        choices=["glaive", "xlam", "apigen", "bfcl"],
+                        choices=["glaive", "xlam", "apigen", "bfcl", "indian"],
                         help="Skip a source if its file is broken.")
     args = parser.parse_args()
 
@@ -334,6 +366,7 @@ def main() -> None:
         "xlam": (DATA_DIR / "xlam.jsonl", parse_xlam),
         "apigen": (DATA_DIR / "apigen_mt.jsonl", parse_apigen_mt),
         "bfcl": (DATA_DIR / "seeds.json", parse_bfcl_seeds),
+        "indian": (DATA_DIR / "train_indian.jsonl", parse_indian_train),
     }
 
     rng = random.Random(args.seed)
@@ -351,9 +384,10 @@ def main() -> None:
                 raw[name].append(rec)
         print(f"[load] {name}: {len(raw[name]) - before} valid records")
 
-    # Dedup by user-query hash. Within a duplicate set, prefer non-glaive
-    # (xlam/apigen/bfcl are higher quality on average).
-    priority = {"bfcl_seeds": 0, "apigen_mt": 1, "xlam": 2, "glaive": 3}
+    # Dedup by user-query hash. Within a duplicate set, prefer the
+    # higher-quality/more-relevant source. Indian training data is the
+    # whole point — it wins all ties.
+    priority = {"indian_train": 0, "bfcl_seeds": 1, "apigen_mt": 2, "xlam": 3, "glaive": 4}
     seen: dict[str, dict[str, Any]] = {}
     for source, recs in raw.items():
         for r in recs:
@@ -363,10 +397,17 @@ def main() -> None:
             if h not in seen or priority.get(r["source"], 99) < priority.get(seen[h]["source"], 99):
                 seen[h] = r
     deduped = list(seen.values())
-    print(f"[dedup] {sum(len(v) for v in raw.values())} → {len(deduped)} after dedup")
+    print(f"[dedup] {sum(len(v) for v in raw.values())} -> {len(deduped)} after dedup")
 
-    # Balance: target proportions across sources.
-    target_mix = {"glaive": 0.40, "xlam": 0.40, "apigen_mt": 0.10, "bfcl_seeds": 0.10}
+    # Balance: target proportions across sources. Indian training data is
+    # weighted heavily — that's the project's whole differentiation.
+    target_mix = {
+        "indian_train": 0.20,
+        "xlam": 0.45,
+        "glaive": 0.25,
+        "apigen_mt": 0.05,
+        "bfcl_seeds": 0.05,
+    }
     by_source: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for r in deduped:
         by_source[r["source"]].append(r)

@@ -3,17 +3,19 @@
     "glaive": 2361,
     "xlam": 60000,
     "apigen": 0,
-    "bfcl": 8
+    "bfcl": 10,
+    "indian": 1778
   },
-  "after_dedup": 58504,
+  "after_dedup": 60283,
   "final_per_source": {
-    "xlam": 29644,
+    "xlam": 6865,
+    "indian_train": 1773,
     "glaive": 348,
-    "bfcl_seeds": 8
+    "bfcl_seeds": 10
   },
-  "train_count": 27000,
-  "val_count": 3000,
-  "max_train": 30000,
+  "train_count": 8097,
+  "val_count": 899,
+  "max_train": 9000,
   "val_frac": 0.1,
   "seed": 42
 }
