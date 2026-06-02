@@ -402,13 +402,34 @@ def score_call(predicted: dict[str, Any], gold: dict[str, Any], tools_idx: dict[
     }
 
 
+def _coerce_number(v: Any) -> float | None:
+    """Best-effort parse of a value into a number. Many models emit numerics
+    as JSON strings ("0.05", "25,000", "₹1500"). Treating those as type
+    mismatches would deflate every model's score — including the baselines —
+    so we coerce before comparing."""
+    if isinstance(v, bool):
+        return None  # don't treat True/False as 1/0
+    if isinstance(v, (int, float)):
+        return float(v)
+    if isinstance(v, str):
+        s = v.strip().lower().replace(",", "")
+        s = re.sub(r"^(rs\.?|inr|₹|\$)\s*", "", s)
+        try:
+            return float(s)
+        except ValueError:
+            return None
+    return None
+
+
 def values_match(p: Any, g: Any) -> bool:
-    """Compare predicted vs gold argument values. Liberal-equality for primitives."""
-    if isinstance(g, (int, float)) and isinstance(p, (int, float)):
-        return abs(p - g) < 1e-6
-    if isinstance(g, str) and isinstance(p, str):
-        return p.strip().lower() == g.strip().lower()
-    if isinstance(g, bool):
+    """Compare predicted vs gold argument values. Liberal-equality for primitives.
+
+    Booleans are checked first (bool is a subclass of int in Python). Numbers
+    are compared after coercion so string-encoded numerics ("0.05", "1,500")
+    match their numeric gold value — a real-world tolerance that keeps scoring
+    honest rather than punishing JSON-string formatting.
+    """
+    if isinstance(g, bool) or isinstance(p, bool):
         return p == g
     if isinstance(g, list) and isinstance(p, list):
         if len(p) != len(g):
@@ -418,6 +439,12 @@ def values_match(p: Any, g: Any) -> bool:
         if set(p.keys()) != set(g.keys()):
             return False
         return all(values_match(p[k], g[k]) for k in g)
+    # Numeric comparison with string-coercion tolerance.
+    gn, pn = _coerce_number(g), _coerce_number(p)
+    if gn is not None and pn is not None:
+        return abs(pn - gn) < 1e-6
+    if isinstance(g, str) and isinstance(p, str):
+        return p.strip().lower() == g.strip().lower()
     return p == g
 
 
@@ -455,29 +482,22 @@ def score_example(ex: dict[str, Any], predicted_calls: list[dict[str, Any]] | No
         }
 
     if category == "parallel":
-        # Order-insensitive set comparison on (tool, args).
-        if len(predicted_calls) != len(gold_calls):
-            return {"category": category, "json_valid": True, "correct": False, "failure": "wrong_call_count"}
-        # Greedy match: each gold call must find some predicted call that scores fully_correct.
-        used = [False] * len(predicted_calls)
-        all_matched = True
-        for g in gold_calls:
-            matched = False
-            for i, p in enumerate(predicted_calls):
-                if used[i]:
-                    continue
-                s = score_call(p, g, tools_idx, lenient=lenient)
-                if s["fully_correct"]:
-                    used[i] = True
-                    matched = True
-                    break
-            if not matched:
-                all_matched = False
-                break
-        return {"category": category, "json_valid": True, "correct": all_matched,
-                "failure": None if all_matched else "parallel_mismatch"}
+        return _score_call_set(predicted_calls, gold_calls, tools_idx, category, lenient)
 
-    # simple, multiple, multi_turn — score the first call (or full match if 1 gold)
+    # multi_turn: usually 1 gold call, but some turns require several. Score as
+    # an order-insensitive set, same as parallel, so multi-call turns aren't
+    # silently truncated to the first call.
+    if category == "multi_turn" and len(gold_calls) > 1:
+        return _score_call_set(predicted_calls, gold_calls, tools_idx, category, lenient)
+
+    # multiple: exactly ONE tool should be selected from several candidates.
+    # Emitting extra calls must be penalised, otherwise a model can spray calls
+    # and win as long as the first one happens to match.
+    if category == "multiple" and len(predicted_calls) != len(gold_calls):
+        return {"category": category, "json_valid": True, "correct": False,
+                "failure": "wrong_call_count"}
+
+    # simple, multiple, single-call multi_turn — score the first (and only) call.
     if not gold_calls:
         return {"category": category, "json_valid": True, "correct": True, "failure": None}
 
@@ -488,7 +508,7 @@ def score_example(ex: dict[str, Any], predicted_calls: list[dict[str, Any]] | No
     if not s["fully_correct"]:
         if not s["tool_name_correct"]:
             failure = "wrong_tool"
-        elif not s["schema_compliant"]:
+        elif not (lenient or s["schema_compliant"]):
             failure = "schema_violation"
         elif s["arg_values_match"] < 1.0:
             failure = "arg_values_off"
@@ -504,6 +524,31 @@ def score_example(ex: dict[str, Any], predicted_calls: list[dict[str, Any]] | No
         "arg_values_match": s["arg_values_match"],
         "failure": failure,
     }
+
+
+def _score_call_set(predicted_calls: list[dict[str, Any]], gold_calls: list[dict[str, Any]],
+                    tools_idx: dict[str, dict[str, Any]], category: str, lenient: bool) -> dict[str, Any]:
+    """Order-insensitive set match: every gold call must be matched by exactly
+    one distinct predicted call, and counts must be equal (no extra calls)."""
+    if len(predicted_calls) != len(gold_calls):
+        return {"category": category, "json_valid": True, "correct": False, "failure": "wrong_call_count"}
+    used = [False] * len(predicted_calls)
+    all_matched = True
+    for g in gold_calls:
+        matched = False
+        for i, p in enumerate(predicted_calls):
+            if used[i]:
+                continue
+            s = score_call(p, g, tools_idx, lenient=lenient)
+            if s["fully_correct"]:
+                used[i] = True
+                matched = True
+                break
+        if not matched:
+            all_matched = False
+            break
+    return {"category": category, "json_valid": True, "correct": all_matched,
+            "failure": None if all_matched else f"{category}_mismatch"}
 
 
 # ----------------------------------------------------------------------------

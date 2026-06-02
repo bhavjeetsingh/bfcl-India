@@ -8,13 +8,13 @@
   },
   "after_dedup": 60283,
   "final_per_source": {
-    "xlam": 6865,
-    "indian_train": 1773,
+    "indian_train": 1772,
+    "xlam": 1776,
     "glaive": 348,
     "bfcl_seeds": 10
   },
-  "train_count": 8097,
-  "val_count": 899,
+  "train_count": 3516,
+  "val_count": 390,
   "max_train": 9000,
   "val_frac": 0.1,
   "seed": 42

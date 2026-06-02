@@ -1,0 +1,27 @@
+{
+  "overall_weighted": 0.7309,
+  "overall_unweighted": 0.7073,
+  "json_validity_pct": 1.0,
+  "per_category_accuracy": {
+    "simple": 0.7647,
+    "multi_turn": 0.75,
+    "irrelevance": 1.0,
+    "multiple": 0.5,
+    "parallel": 0.75
+  },
+  "per_category_count": {
+    "simple": 17,
+    "multi_turn": 4,
+    "irrelevance": 4,
+    "multiple": 12,
+    "parallel": 4
+  },
+  "failure_modes": {
+    "arg_values_off": 7,
+    "empty_calls_when_required": 4,
+    "parallel_mismatch": 1
+  },
+  "n_examples": 41,
+  "model": "gemini-2.5-flash",
+  "provider": "gemini"
+}

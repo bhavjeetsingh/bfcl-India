@@ -1,0 +1,27 @@
+{
+  "overall_weighted": 0.7587,
+  "overall_unweighted": 0.76,
+  "json_validity_pct": 1.0,
+  "per_category_accuracy": {
+    "simple": 0.7455,
+    "multi_turn": 0.8333,
+    "irrelevance": 1.0,
+    "multiple": 0.7073,
+    "parallel": 0.5238
+  },
+  "per_category_count": {
+    "simple": 55,
+    "multi_turn": 36,
+    "irrelevance": 22,
+    "multiple": 41,
+    "parallel": 21
+  },
+  "failure_modes": {
+    "arg_values_off": 26,
+    "parallel_mismatch": 10,
+    "empty_calls_when_required": 6
+  },
+  "n_examples": 175,
+  "model": "google/gemini-2.5-flash",
+  "provider": "openrouter"
+}

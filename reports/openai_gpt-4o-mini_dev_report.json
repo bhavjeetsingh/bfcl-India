@@ -1,0 +1,31 @@
+{
+  "overall_weighted": 0.6907,
+  "overall_unweighted": 0.6729,
+  "json_validity_pct": 0.9283,
+  "per_category_accuracy": {
+    "simple": 0.7429,
+    "multi_turn": 0.8214,
+    "irrelevance": 0.6087,
+    "multiple": 0.6579,
+    "parallel": 0.3684
+  },
+  "per_category_count": {
+    "simple": 105,
+    "multi_turn": 56,
+    "irrelevance": 46,
+    "multiple": 76,
+    "parallel": 38
+  },
+  "failure_modes": {
+    "arg_values_off": 51,
+    "parallel_mismatch": 24,
+    "json_invalid": 23,
+    "schema_violation": 3,
+    "empty_calls_when_required": 2,
+    "wrong_call_count": 1,
+    "should_have_refused": 1
+  },
+  "n_examples": 321,
+  "model": "openai/gpt-4o-mini",
+  "provider": "openrouter"
+}

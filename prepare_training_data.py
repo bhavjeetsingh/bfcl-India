@@ -353,7 +353,12 @@ def looks_valid(rec: dict[str, Any]) -> bool:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--max-train", type=int, default=30000,
-                        help="Cap total training examples (Kaggle T4 budget).")
+                        help="Hard cap on total training examples (Kaggle T4 budget).")
+    parser.add_argument("--strict-mix", action="store_true",
+                        help="Honour target_mix proportions EXACTLY by scaling the total "
+                             "down to whatever the scarcest source supports. Prevents the "
+                             "Indian fraction from being silently diluted by backfill when a "
+                             "source (e.g. indian_train) is smaller than its target slice.")
     parser.add_argument("--val-frac", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--skip", action="append", default=[],
@@ -399,14 +404,16 @@ def main() -> None:
     deduped = list(seen.values())
     print(f"[dedup] {sum(len(v) for v in raw.values())} -> {len(deduped)} after dedup")
 
-    # Balance: target proportions across sources. Indian training data is
-    # weighted heavily — that's the project's whole differentiation.
+    # Balance: target proportions across sources. The BFCL-India TEST set is
+    # ~68% non-English (Hinglish/Hindi/Tamil/Bengali), so the training mix must
+    # be Indian-heavy or the model is evaluated on a distribution it never saw.
+    # Aggressive Indian weighting is the project's whole differentiation.
     target_mix = {
-        "indian_train": 0.20,
-        "xlam": 0.45,
-        "glaive": 0.25,
-        "apigen_mt": 0.05,
-        "bfcl_seeds": 0.05,
+        "indian_train": 0.40,
+        "xlam": 0.40,
+        "glaive": 0.13,
+        "apigen_mt": 0.04,
+        "bfcl_seeds": 0.03,
     }
     by_source: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for r in deduped:
@@ -414,13 +421,29 @@ def main() -> None:
     for s in by_source:
         rng.shuffle(by_source[s])
 
-    cap = args.max_train
+    # Determine the effective total. In --strict-mix, anchor the total on the
+    # INDIAN data so we use as much of it as possible (it's the project's whole
+    # point), then fill the other slices to their target proportions. Sources
+    # that can't fill their slice contribute whatever they have — they only
+    # lower the realised total, never inflate a non-Indian source past target.
+    if args.strict_mix:
+        anchor_avail = len(by_source.get("indian_train", []))
+        anchor_frac = target_mix["indian_train"]
+        cap = min(args.max_train, int(anchor_avail / anchor_frac)) if anchor_frac else args.max_train
+        backfill = False
+        print(f"[mix] strict-mix on — anchored on {anchor_avail} Indian examples "
+              f"({anchor_frac:.0%} target) -> effective total {cap}")
+    else:
+        cap = args.max_train
+        backfill = True
+
     picked: list[dict[str, Any]] = []
     for src, frac in target_mix.items():
         n = int(cap * frac)
-        picked.extend(by_source[src][:n])
-    # If a source was short, top up from whichever has spare.
-    if len(picked) < cap:
+        picked.extend(by_source[src][:n])  # slice auto-truncates if source is short
+    # Only backfill when NOT in strict-mix — backfill trades proportion fidelity
+    # for hitting the exact cap, which is the opposite of what we want here.
+    if backfill and len(picked) < cap:
         leftovers = [r for src in by_source for r in by_source[src][int(cap * target_mix.get(src, 0)):]]
         rng.shuffle(leftovers)
         picked.extend(leftovers[: cap - len(picked)])

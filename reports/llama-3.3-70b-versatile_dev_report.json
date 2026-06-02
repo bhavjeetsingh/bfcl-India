@@ -1,0 +1,29 @@
+{
+  "overall_weighted": 0.743,
+  "overall_unweighted": 0.7344,
+  "json_validity_pct": 1.0,
+  "per_category_accuracy": {
+    "simple": 0.7073,
+    "multi_turn": 0.9565,
+    "irrelevance": 0.75,
+    "multiple": 0.6875,
+    "parallel": 0.5625
+  },
+  "per_category_count": {
+    "simple": 41,
+    "multi_turn": 23,
+    "irrelevance": 16,
+    "multiple": 32,
+    "parallel": 16
+  },
+  "failure_modes": {
+    "arg_values_off": 20,
+    "parallel_mismatch": 7,
+    "should_have_refused": 4,
+    "schema_violation": 2,
+    "wrong_call_count": 1
+  },
+  "n_examples": 128,
+  "model": "llama-3.3-70b-versatile",
+  "provider": "groq"
+}
