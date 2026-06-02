@@ -57,19 +57,19 @@ Every schema in `tools.json` follows these rules:
 
 ## 3. Evaluation Categories
 
-500 evaluation examples split across 5 categories, modelled after BFCL v3:
+421 evaluation examples split across 5 categories, modelled after BFCL v3:
 
 | Category | Count | What it tests |
 |---|---|---|
-| **Simple** | 200 | Single user query → single tool call. Tests baseline ability to pick a tool and fill required args correctly. |
+| **Simple** | 152 | Single user query → single tool call. Tests baseline ability to pick a tool and fill required args correctly. |
 | **Multiple** | 100 | Query is provided alongside 2-5 candidate tools (some near-duplicates). Tests disambiguation. |
 | **Parallel** | 50 | One query → multiple independent tool calls (e.g., "block my debit card AND request a chequebook"). Tests structured array output. |
-| **Multi-turn** | 100 | 2-4 turns where the assistant makes a tool call, receives a synthetic tool result, and decides the next action. Tests trajectory completion. |
+| **Multi-turn** | 69 | 2-4 turns where the assistant makes a tool call, receives a synthetic tool result, and decides the next action. Tests trajectory completion. |
 | **Irrelevance** | 50 | Query has no matching tool in the registry — model must refuse rather than force a wrong call. Tests calibration / refusal. |
 
 ### Coverage guarantees
 
-- Every tool appears in at least 4 examples across the 500-set.
+- Every tool appears in at least 4 examples across the 421-set.
 - Every category has examples in **English, Hindi (Devanagari), Hinglish (Roman)**, and a small share of **Tamil / Bengali** (transliterated where appropriate).
 - 30% of Simple examples include "noisy" extra context (small talk, irrelevant detail) before the actionable request.
 
@@ -168,7 +168,7 @@ For Irrelevance examples, `"predicted_calls": []` is the correct answer.
 ### 5.3 Running the scorer
 
 ```bash
-python score.py \
+python eval.py \
   --predictions my_model_predictions.jsonl \
   --gold bfcl-india-test-gold.jsonl \
   --tools tools.json \

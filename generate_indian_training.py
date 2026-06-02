@@ -41,6 +41,11 @@ import jsonschema
 from dotenv import load_dotenv
 from tqdm import tqdm
 
+from utils import (
+    strip_fences, compact_field, compact_tool, pick_tool_subset,
+    existing_ids, example_id, validate_call, load_tools_idx,
+)
+
 ROOT = Path(__file__).resolve().parent
 TOOLS_PATH = ROOT / "tools.json"
 SEEDS_PATH = ROOT / "data" / "seeds.json"
@@ -114,102 +119,6 @@ def load_seeds() -> list[dict[str, Any]]:
 
 def schema_index(tools: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return {t["name"]: t for t in tools}
-
-
-def existing_ids(out_path: Path) -> set[str]:
-    if not out_path.exists():
-        return set()
-    ids: set[str] = set()
-    for line in out_path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            ids.add(json.loads(line)["id"])
-        except Exception:
-            continue
-    return ids
-
-
-def compact_field(v: dict[str, Any]) -> dict[str, Any]:
-    out: dict[str, Any] = {
-        "type": v.get("type"),
-        "enum": v.get("enum"),
-        "desc": (v.get("description") or "")[:80],
-    }
-    if v.get("type") == "object" and isinstance(v.get("properties"), dict):
-        out["object_fields"] = {
-            ik: {"type": iv.get("type"), "enum": iv.get("enum")}
-            for ik, iv in v["properties"].items()
-        }
-        if v.get("required"):
-            out["object_required"] = v["required"]
-    if v.get("type") == "array" and isinstance(v.get("items"), dict):
-        items = v["items"]
-        if items.get("type") == "object" and isinstance(items.get("properties"), dict):
-            out["array_item_fields"] = {
-                ik: {"type": iv.get("type"), "enum": iv.get("enum")}
-                for ik, iv in items["properties"].items()
-            }
-            if items.get("required"):
-                out["array_item_required"] = items["required"]
-    return out
-
-
-def compact_tool(tool: dict[str, Any]) -> dict[str, Any]:
-    params = tool.get("parameters", {})
-    props = params.get("properties", {})
-    return {
-        "name": tool["name"],
-        "description": tool["description"][:200],
-        "required": params.get("required", []),
-        "fields": {k: compact_field(v) for k, v in props.items()},
-    }
-
-
-def pick_tool_subset(tools: list[dict[str, Any]], k: int, rng: random.Random) -> list[str]:
-    by_prefix: dict[str, list[str]] = {}
-    for t in tools:
-        prefix = t["name"].split("_", 1)[0]
-        by_prefix.setdefault(prefix, []).append(t["name"])
-    picked: list[str] = []
-    prefixes = list(by_prefix.keys())
-    rng.shuffle(prefixes)
-    while len(picked) < k and prefixes:
-        for p in prefixes:
-            if by_prefix[p]:
-                picked.append(by_prefix[p].pop())
-                if len(picked) >= k:
-                    break
-    return picked
-
-
-def strip_fences(text: str) -> str:
-    text = (text or "").strip()
-    fence = re.match(r"^```(?:json)?\s*(.*)\s*```$", text, flags=re.DOTALL)
-    return fence.group(1) if fence else text
-
-
-def validate_call(call: dict[str, Any], tools_idx: dict[str, dict[str, Any]]) -> tuple[bool, str]:
-    if not isinstance(call, dict):
-        return False, "call not a dict"
-    tool = call.get("tool")
-    args = call.get("args", {})
-    if tool not in tools_idx:
-        return False, f"unknown tool {tool}"
-    if not isinstance(args, dict):
-        return False, "args not a dict"
-    schema = tools_idx[tool]["parameters"]
-    try:
-        jsonschema.validate(args, schema)
-    except jsonschema.ValidationError as e:
-        return False, f"schema fail: {e.message[:100]}"
-    return True, ""
-
-
-def example_id(query: str, calls: list[dict[str, Any]]) -> str:
-    h = hashlib.sha1((query + json.dumps(calls, sort_keys=True)).encode("utf-8")).hexdigest()[:12]
-    return f"bfcl_train_{h}"
 
 
 def generate_batch(

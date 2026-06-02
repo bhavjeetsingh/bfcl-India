@@ -28,6 +28,11 @@ import jsonschema
 from dotenv import load_dotenv
 from tqdm import tqdm
 
+from utils import (
+    strip_fences, compact_field, compact_tool, pick_tool_subset,
+    existing_ids, validate_call, load_tools_idx,
+)
+
 ROOT = Path(__file__).resolve().parent
 TOOLS_PATH = ROOT / "tools.json"
 SEEDS_PATH = ROOT / "data" / "seeds.json"
@@ -140,21 +145,6 @@ def load_seeds() -> list[dict[str, Any]]:
     return json.loads(SEEDS_PATH.read_text(encoding="utf-8"))
 
 
-def existing_ids(out_path: Path) -> set[str]:
-    if not out_path.exists():
-        return set()
-    ids: set[str] = set()
-    for line in out_path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            ids.add(json.loads(line)["id"])
-        except Exception:
-            continue
-    return ids
-
-
 def schema_index(tools: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return {t["name"]: t for t in tools}
 
@@ -198,73 +188,6 @@ def pick_seed_examples(seeds: list[dict[str, Any]], category: str, k: int = 1) -
         return []
     random.shuffle(pool)
     return pool[:k]
-
-
-def pick_tool_subset(tools: list[dict[str, Any]], k: int) -> list[str]:
-    """Pick k tool names. Mix categories so output isn't UPI-heavy."""
-    by_prefix: dict[str, list[str]] = {}
-    for t in tools:
-        prefix = t["name"].split("_", 1)[0]
-        by_prefix.setdefault(prefix, []).append(t["name"])
-    picked: list[str] = []
-    prefixes = list(by_prefix.keys())
-    random.shuffle(prefixes)
-    while len(picked) < k and prefixes:
-        for p in prefixes:
-            if by_prefix[p]:
-                picked.append(by_prefix[p].pop())
-                if len(picked) >= k:
-                    break
-    return picked
-
-
-def compact_field(v: dict[str, Any]) -> dict[str, Any]:
-    """Compact a single property, recursing one level into nested object schemas."""
-    out: dict[str, Any] = {
-        "type": v.get("type"),
-        "enum": v.get("enum"),
-        "desc": (v.get("description") or "")[:80],
-    }
-    # Show nested object properties so the model emits the right shape.
-    if v.get("type") == "object" and isinstance(v.get("properties"), dict):
-        out["object_fields"] = {
-            ik: {"type": iv.get("type"), "enum": iv.get("enum")}
-            for ik, iv in v["properties"].items()
-        }
-        if v.get("required"):
-            out["object_required"] = v["required"]
-    # Show array item shape (e.g. passengers list) at one level.
-    if v.get("type") == "array" and isinstance(v.get("items"), dict):
-        items = v["items"]
-        if items.get("type") == "object" and isinstance(items.get("properties"), dict):
-            out["array_item_fields"] = {
-                ik: {"type": iv.get("type"), "enum": iv.get("enum")}
-                for ik, iv in items["properties"].items()
-            }
-            if items.get("required"):
-                out["array_item_required"] = items["required"]
-        else:
-            out["array_item_type"] = items.get("type")
-    return out
-
-
-def compact_tool(tool: dict[str, Any]) -> dict[str, Any]:
-    """Strip schemas to name + brief description + required keys for prompt economy."""
-    params = tool.get("parameters", {})
-    props = params.get("properties", {})
-    return {
-        "name": tool["name"],
-        "description": tool["description"][:200],
-        "required": params.get("required", []),
-        "fields": {k: compact_field(v) for k, v in props.items()},
-    }
-
-
-def strip_fences(text: str) -> str:
-    """Some models wrap JSON in ```json ... ``` despite instructions."""
-    text = (text or "").strip()
-    fence = re.match(r"^```(?:json)?\s*(.*)\s*```$", text, flags=re.DOTALL)
-    return fence.group(1) if fence else text
 
 
 # ----------------------------------------------------------------------------

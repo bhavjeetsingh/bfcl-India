@@ -39,7 +39,7 @@ AS_OF_DATE = "2026-05-30"
 # Aligned with eval.py — assistant must learn to emit this exact shape.
 SYSTEM_PROMPT_TEMPLATE = """You are a tool-calling assistant. The user's request must be answered ONLY by calling one or more of the tools provided.
 
-Today's date is {date}. When the user says "tomorrow", "next Friday", "in 3 days", resolve to an absolute YYYY-MM-DD date and put it in the tool args.
+Today's date is {date}. When the user says "tomorrow", "next Friday", "in 3 days", resolve to an absolute YYYY-MM-DD date against this anchor and put the resolved date in the tool args. Never put words like "tomorrow" inside args.
 
 Output a single JSON object: {{"calls": [{{"tool": "<name>", "args": {{...}}}}, ...]}}.
 

@@ -30,6 +30,8 @@ import jsonschema
 from dotenv import load_dotenv
 from tqdm import tqdm
 
+from utils import strip_fences
+
 ROOT = Path(__file__).resolve().parent
 TOOLS_PATH = ROOT / "tools.json"
 DATA_DIR = ROOT / "data" / "generated"
@@ -307,12 +309,6 @@ def build_prompt(messages: list[dict[str, Any]], tools: list[dict[str, Any]]) ->
 # ----------------------------------------------------------------------------
 
 
-def strip_fences(text: str) -> str:
-    text = (text or "").strip()
-    fence = re.match(r"^```(?:json)?\s*(.*)\s*```$", text, flags=re.DOTALL)
-    return fence.group(1) if fence else text
-
-
 def parse_predicted_calls(raw: str) -> tuple[list[dict[str, Any]] | None, str]:
     """Returns (calls_or_None, error_reason). None means JSON-invalid."""
     raw = strip_fences(raw)
@@ -360,6 +356,15 @@ def score_call(predicted: dict[str, Any], gold: dict[str, Any], tools_idx: dict[
     p_args = predicted.get("args", {}) or {}
     g_args = gold.get("args", {}) or {}
 
+    # Check required args present (SPEC §4.1 metric)
+    required_args_present = True
+    if p_tool in tools_idx:
+        schema = tools_idx[p_tool]["parameters"]
+        required_fields = schema.get("required", [])
+        if required_fields:
+            p_keys = set(p_args.keys()) if isinstance(p_args, dict) else set()
+            required_args_present = all(r in p_keys for r in required_fields)
+
     schema_compliant = False
     if p_tool in tools_idx:
         schema = tools_idx[p_tool]["parameters"]
@@ -395,6 +400,7 @@ def score_call(predicted: dict[str, Any], gold: dict[str, Any], tools_idx: dict[
 
     return {
         "tool_name_correct": tool_name_correct,
+        "required_args_present": required_args_present,
         "schema_compliant": schema_compliant,
         "arg_keys_f1": round(arg_keys_f1, 3),
         "arg_values_match": round(arg_values_match, 3),
