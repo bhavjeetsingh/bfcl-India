@@ -1,5 +1,5 @@
-﻿"""
-prepare_training_data.py â€” Build train.jsonl + val.jsonl for fine-tuning.
+"""
+prepare_training_data.py — Build train.jsonl + val.jsonl for fine-tuning.
 
 Reads:  data/glaive.jsonl       (110K Glaive function-calling)
         data/xlam.jsonl         (60K Salesforce xLAM)
@@ -10,7 +10,7 @@ Writes: data/train.jsonl
         data/data_stats.json    (counts per source, dedup stats)
 
 Output format: Qwen-2.5 chat template with assistant emitting {"calls": [...]}.
-This MUST match eval.py's expected output format exactly â€” otherwise the
+This MUST match eval.py's expected output format exactly — otherwise the
 fine-tune teaches the wrong shape and eval scores get worse.
 
 Usage:
@@ -33,7 +33,7 @@ from typing import Any, Iterator
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 
-# BFCL-India tool registry â€” only examples using these tools are useful.
+# BFCL-India tool registry — only examples using these tools are useful.
 BFCL_TOOLS_PATH = ROOT / "tools.json"
 BFCL_TOOLS: set[str] = set()
 try:
@@ -44,7 +44,7 @@ except Exception:
 # Same anchor as generate_examples.py / eval.py.
 AS_OF_DATE = "2026-05-30"
 
-# Aligned with eval.py â€” assistant must learn to emit this exact shape.
+# Aligned with eval.py — assistant must learn to emit this exact shape.
 SYSTEM_PROMPT_TEMPLATE = """You are a tool-calling assistant. The user's request must be answered ONLY by calling one or more of the tools provided.
 
 Today's date is {date}. When the user says "tomorrow", "next Friday", "in 3 days", resolve to an absolute YYYY-MM-DD date against this anchor and put the resolved date in the tool args. Never put words like "tomorrow" inside args.
@@ -64,7 +64,7 @@ AVAILABLE TOOLS:
 
 
 # ----------------------------------------------------------------------------
-# Source parsers â€” each yields {messages, tools, source} records.
+# Source parsers — each yields {messages, tools, source} records.
 # Each parser is defensive: bad records are skipped, not raised.
 # ----------------------------------------------------------------------------
 
@@ -197,7 +197,7 @@ def parse_glaive(path: Path) -> Iterator[dict[str, Any]]:
             user_match = user_re.search(chat)
             call_match = call_re.search(chat)
             if not user_match or not call_match:
-                continue  # refusal or malformed â€” skip
+                continue  # refusal or malformed — skip
 
             user_q = user_match.group(1).strip()
             try:
@@ -213,10 +213,6 @@ def parse_glaive(path: Path) -> Iterator[dict[str, Any]]:
                 except Exception:
                     continue
             if not tool_name or not isinstance(args, dict):
-                continue
-
-            # FILTER: skip examples with tools outside BFCL-India registry
-            if tool_name not in BFCL_TOOLS:
                 continue
 
             yield {
@@ -242,11 +238,11 @@ def parse_apigen_mt(path: Path) -> Iterator[dict[str, Any]]:
             if not isinstance(tools, list) or not tools:
                 continue
 
-            convo = r.get("conversation") or r.get("messages") or []
+            convo = r.get("conversations") or r.get("conversation") or r.get("messages") or []
             if not isinstance(convo, list) or len(convo) < 2:
                 continue
 
-            # Find the last assistant turn that contains tool calls â€” that's our target.
+            # Find the last assistant turn that contains tool calls — that's our target.
             history: list[dict[str, str]] = []
             target_calls: list[dict[str, Any]] | None = None
             for turn in convo:
@@ -291,7 +287,7 @@ def parse_apigen_mt(path: Path) -> Iterator[dict[str, Any]]:
 def parse_indian_train(path: Path) -> Iterator[dict[str, Any]]:
     """BFCL-India training set produced by generate_indian_training.py +
     generate_topup.py. Records are already in the {messages, tools, calls}
-    shape this script's pipeline expects â€” we normalise the source label so
+    shape this script's pipeline expects — we normalise the source label so
     the main run + top-up records share a single bucket in target_mix."""
     if not path.exists():
         return
@@ -314,9 +310,9 @@ def parse_indian_train(path: Path) -> Iterator[dict[str, Any]]:
 
 
 def parse_bfcl_seeds(path: Path) -> Iterator[dict[str, Any]]:
-    """BFCL-India hand-written seeds â€” high-quality Indian-context examples.
+    """BFCL-India hand-written seeds — high-quality Indian-context examples.
 
-    NOTE: We do NOT include data/generated/ here â€” those are held out as the
+    NOTE: We do NOT include data/generated/ here — those are held out as the
     test set. Training on them would leak ground truth into the model.
     """
     if not path.exists():
@@ -378,7 +374,7 @@ def to_chat_record(rec: dict[str, Any]) -> dict[str, Any] | None:
     """
     tools_json = json.dumps(rec["tools"], ensure_ascii=False, indent=1)
     if len(tools_json) > 12000:
-        return None  # too long â€” would blow context window
+        return None  # too long — would blow context window
 
     system = SYSTEM_PROMPT_TEMPLATE.format(date=AS_OF_DATE, tools_json=tools_json)
     chat = [{"role": "system", "content": system}]
@@ -410,7 +406,7 @@ def looks_valid(rec: dict[str, Any]) -> bool:
     if not rec.get("tools") or not rec.get("messages"):
         return False
     calls = rec.get("calls")
-    # Empty list is OK â€” refusal training data has calls=[] on purpose.
+    # Empty list is OK — refusal training data has calls=[] on purpose.
     # None means the parser didn't extract any structure, which is broken.
     if calls is None:
         return False
@@ -459,7 +455,7 @@ def main() -> None:
             print(f"[skip] {name}")
             continue
         if not path.exists():
-            print(f"[miss] {path.name} not found â€” skipping {name}")
+            print(f"[miss] {path.name} not found — skipping {name}")
             continue
         before = len(raw[name])
         for rec in parser_fn(path):
@@ -469,7 +465,7 @@ def main() -> None:
 
     # Dedup by user-query hash. Within a duplicate set, prefer the
     # higher-quality/more-relevant source. Indian training data is the
-    # whole point â€” it wins all ties.
+    # whole point — it wins all ties.
     priority = {"indian_train": 0, "bfcl_seeds": 1, "apigen_mt": 2, "xlam": 3, "xlam_unfiltered": 4, "glaive": 5}
     seen: dict[str, dict[str, Any]] = {}
     for source, recs in raw.items():
@@ -485,7 +481,7 @@ def main() -> None:
     # Balance: target proportions across sources. The BFCL-India TEST set is
     # ~68% non-English (Hinglish/Hindi/Tamil/Bengali), so the training mix must
     # be Indian-heavy or the model is evaluated on a distribution it never saw.
-    # After BFCL-tool filtering, xLAM and Glaive shrink dramatically â€” Indian
+    # After BFCL-tool filtering, xLAM and Glaive shrink dramatically — Indian
     # data becomes the dominant source. This is correct: the project's whole
     # point is Indian function calling.
     # v2 mix: 50% xLAM (general shape) + 30% Indian + 20% rest
@@ -508,14 +504,14 @@ def main() -> None:
     # Determine the effective total. In --strict-mix, anchor the total on the
     # INDIAN data so we use as much of it as possible (it's the project's whole
     # point), then fill the other slices to their target proportions. Sources
-    # that can't fill their slice contribute whatever they have â€” they only
+    # that can't fill their slice contribute whatever they have — they only
     # lower the realised total, never inflate a non-Indian source past target.
     if args.strict_mix:
         anchor_avail = len(by_source.get("indian_train", []))
         anchor_frac = target_mix["indian_train"]
         cap = min(args.max_train, int(anchor_avail / anchor_frac)) if anchor_frac else args.max_train
         backfill = False
-        print(f"[mix] strict-mix on â€” anchored on {anchor_avail} Indian examples "
+        print(f"[mix] strict-mix on — anchored on {anchor_avail} Indian examples "
               f"({anchor_frac:.0%} target) -> effective total {cap}")
     else:
         cap = args.max_train
@@ -525,7 +521,7 @@ def main() -> None:
     for src, frac in target_mix.items():
         n = int(cap * frac)
         picked.extend(by_source[src][:n])  # slice auto-truncates if source is short
-    # Only backfill when NOT in strict-mix â€” backfill trades proportion fidelity
+    # Only backfill when NOT in strict-mix — backfill trades proportion fidelity
     # for hitting the exact cap, which is the opposite of what we want here.
     if backfill and len(picked) < cap:
         leftovers = [r for src in by_source for r in by_source[src][int(cap * target_mix.get(src, 0)):]]
