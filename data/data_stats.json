@@ -1,21 +1,20 @@
 {
   "raw_per_source": {
-    "glaive": 2361,
-    "xlam": 60000,
+    "glaive": 0,
+    "xlam": 4,
     "apigen": 0,
     "bfcl": 10,
-    "indian": 1779
+    "indian": 1778
   },
-  "after_dedup": 60283,
+  "after_dedup": 1791,
   "final_per_source": {
     "indian_train": 1772,
-    "xlam": 1776,
-    "glaive": 348,
-    "bfcl_seeds": 10
+    "bfcl_seeds": 10,
+    "xlam": 4
   },
-  "train_count": 3516,
-  "val_count": 390,
-  "max_train": 9000,
+  "train_count": 1608,
+  "val_count": 178,
+  "max_train": 30000,
   "val_frac": 0.1,
   "seed": 42
 }

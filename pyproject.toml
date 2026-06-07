@@ -1,16 +1,30 @@
 [project]
 name = "bfcl-india"
-version = "0.1.0"
+version = "0.2.0"
 description = "Indian-context function calling benchmark"
 readme = "README.md"
 requires-python = ">=3.12"
+
+# Eval / generation deps (always needed)
 dependencies = [
-    "datasets>=4.8.5",
     "google-generativeai>=0.8.6",
     "groq>=1.4.0",
-    "huggingface-hub>=1.17.0",
     "jsonschema>=4.26.0",
     "openai>=2.38.0",
     "python-dotenv>=1.2.2",
     "tqdm>=4.66.0",
+]
+
+# Training deps (Kaggle-only - pinned to avoid unsloth conflicts)
+[project.optional-dependencies]
+train = [
+    "torch>=2.5.1,<2.7",
+    "transformers>=4.51.3,<5.0",
+    "datasets>=2.21.0,<3.0",
+    "accelerate>=1.0.1,<2.0",
+    "peft>=0.13.2,<1.0",
+    "trl>=0.12.2,<1.0",
+    "bitsandbytes>=0.43.3,<1.0",
+    "huggingface-hub>=0.30.0,<2.0",
+    "unsloth>=2025.3.1,<2026.0",
 ]
