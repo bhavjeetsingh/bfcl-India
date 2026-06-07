@@ -1,10 +1,10 @@
 """
-eval.py — Score a model on BFCL-India.
+eval.py â€” Score a model on BFCL-India.
 
 Loads:    data/generated/*.jsonl (the 421-example test set)
           tools.json (50-tool registry)
 Calls:    a model via Gemini / Groq / OpenRouter / local HuggingFace transformers
-Computes: per-category accuracy + weighted overall (matching SPEC.md §4)
+Computes: per-category accuracy + weighted overall (matching SPEC.md Â§4)
 Writes:   reports/{model_name}_predictions.jsonl
           reports/{model_name}_report.json (numbers + failure modes)
 
@@ -46,7 +46,7 @@ CATEGORY_WEIGHTS = {
     "irrelevance": 0.10,
 }
 
-# Same anchor as generate_examples.py — gold args use absolute dates resolved
+# Same anchor as generate_examples.py â€” gold args use absolute dates resolved
 # against this. The model must use the same anchor or all date-relative
 # queries fail value-match.
 AS_OF_DATE = "2026-05-30"
@@ -82,7 +82,7 @@ def load_examples(shuffle_seed: int = 42, split: str = "all") -> list[dict[str, 
     split=
       "all"  -> the original 421-example pool (data/generated/*.jsonl)
       "dev"  -> data/eval/dev.jsonl     (used freely during HP tuning)
-      "test" -> data/eval/test.jsonl    (secret split — run ONCE after final HP selection)
+      "test" -> data/eval/test.jsonl    (secret split â€” run ONCE after final HP selection)
 
     Shuffling matters for partial runs: if quota hits mid-eval, the examples
     seen so far are spread across all 5 categories instead of one. Seeded so
@@ -92,7 +92,7 @@ def load_examples(shuffle_seed: int = 42, split: str = "all") -> list[dict[str, 
     if split == "dev":
         path = ROOT / "data" / "eval" / "dev.jsonl"
         if not path.exists():
-            raise SystemExit(f"{path} missing — run `python split_test_set.py` first.")
+            raise SystemExit(f"{path} missing â€” run `python split_test_set.py` first.")
         for line in path.read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if line:
@@ -100,7 +100,7 @@ def load_examples(shuffle_seed: int = 42, split: str = "all") -> list[dict[str, 
     elif split == "test":
         path = ROOT / "data" / "eval" / "test.jsonl"
         if not path.exists():
-            raise SystemExit(f"{path} missing — run `python split_test_set.py` first.")
+            raise SystemExit(f"{path} missing â€” run `python split_test_set.py` first.")
         for line in path.read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if line:
@@ -135,7 +135,7 @@ def already_predicted(out_path: Path) -> dict[str, dict[str, Any]]:
             continue
         try:
             obj = json.loads(line)
-            out[obj["id"]] = obj  # later entries overwrite earlier — newest wins
+            out[obj["id"]] = obj  # later entries overwrite earlier â€” newest wins
         except Exception:
             continue
     # Rewrite the file deduped, in stable id order, so it stops growing forever.
@@ -236,28 +236,34 @@ class HFBackend(Backend):
     def __init__(self, model_name: str, device: str = "cuda"):
         from transformers import AutoModelForCausalLM, AutoTokenizer
         import torch
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            model_name, trust_remote_code=True
+        )
         self.model = AutoModelForCausalLM.from_pretrained(
             model_name,
             torch_dtype=torch.bfloat16,
             device_map=device,
+            trust_remote_code=True,
         )
         self.device = device
+        if self.tokenizer.pad_token_id is None:
+            self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
 
     def predict(self, messages, available_tools):
         import torch
-        # Use the tokenizer's chat template with proper role-tagged turns so
-        # multi-turn examples are laid out correctly for chat-tuned models.
         chat = build_chat_messages(messages, available_tools)
-        ids = self.tokenizer.apply_chat_template(
-            chat, add_generation_prompt=True, return_tensors="pt"
-        ).to(self.device)
+        prompt = self.tokenizer.apply_chat_template(
+            chat, add_generation_prompt=True, tokenize=False
+        )
+        ids = self.tokenizer(
+            prompt, return_tensors="pt"
+        ).input_ids.to(self.device)
         with torch.inference_mode():
             out = self.model.generate(
                 ids,
                 max_new_tokens=1024,
                 do_sample=False,
-                pad_token_id=self.tokenizer.eos_token_id,
+                pad_token_id=self.tokenizer.pad_token_id,
             )
         text = self.tokenizer.decode(out[0][ids.shape[1]:], skip_special_tokens=True)
         return text
@@ -337,7 +343,7 @@ def parse_predicted_calls(raw: str) -> tuple[list[dict[str, Any]] | None, str]:
 
 
 # ----------------------------------------------------------------------------
-# Scoring (matches SPEC.md §4)
+# Scoring (matches SPEC.md Â§4)
 # ----------------------------------------------------------------------------
 
 
@@ -356,7 +362,7 @@ def score_call(predicted: dict[str, Any], gold: dict[str, Any], tools_idx: dict[
     p_args = predicted.get("args", {}) or {}
     g_args = gold.get("args", {}) or {}
 
-    # Check required args present (SPEC §4.1 metric)
+    # Check required args present (SPEC Â§4.1 metric)
     required_args_present = True
     if p_tool in tools_idx:
         schema = tools_idx[p_tool]["parameters"]
@@ -410,8 +416,8 @@ def score_call(predicted: dict[str, Any], gold: dict[str, Any], tools_idx: dict[
 
 def _coerce_number(v: Any) -> float | None:
     """Best-effort parse of a value into a number. Many models emit numerics
-    as JSON strings ("0.05", "25,000", "₹1500"). Treating those as type
-    mismatches would deflate every model's score — including the baselines —
+    as JSON strings ("0.05", "25,000", "â‚¹1500"). Treating those as type
+    mismatches would deflate every model's score â€” including the baselines â€”
     so we coerce before comparing."""
     if isinstance(v, bool):
         return None  # don't treat True/False as 1/0
@@ -419,7 +425,7 @@ def _coerce_number(v: Any) -> float | None:
         return float(v)
     if isinstance(v, str):
         s = v.strip().lower().replace(",", "")
-        s = re.sub(r"^(rs\.?|inr|₹|\$)\s*", "", s)
+        s = re.sub(r"^(rs\.?|inr|â‚¹|\$)\s*", "", s)
         try:
             return float(s)
         except ValueError:
@@ -432,7 +438,7 @@ def values_match(p: Any, g: Any) -> bool:
 
     Booleans are checked first (bool is a subclass of int in Python). Numbers
     are compared after coercion so string-encoded numerics ("0.05", "1,500")
-    match their numeric gold value — a real-world tolerance that keeps scoring
+    match their numeric gold value â€” a real-world tolerance that keeps scoring
     honest rather than punishing JSON-string formatting.
     """
     if isinstance(g, bool) or isinstance(p, bool):
@@ -503,7 +509,7 @@ def score_example(ex: dict[str, Any], predicted_calls: list[dict[str, Any]] | No
         return {"category": category, "json_valid": True, "correct": False,
                 "failure": "wrong_call_count"}
 
-    # simple, multiple, single-call multi_turn — score the first (and only) call.
+    # simple, multiple, single-call multi_turn â€” score the first (and only) call.
     if not gold_calls:
         return {"category": category, "json_valid": True, "correct": True, "failure": None}
 
@@ -670,12 +676,12 @@ def main() -> None:
                 raw = backend.predict(ex["messages"], available)
             except Exception as e:
                 msg = str(e)
-                # Daily / per-day caps look different across providers — bail cleanly.
+                # Daily / per-day caps look different across providers â€” bail cleanly.
                 if any(s in msg.lower() for s in ["tokens per day", "requests per day", "tpd", "rpd", "quota_id\":\"generaterequestsperday"]):
                     print(f"\n  [stop] Daily quota exhausted on {args.model}. "
                           f"Predictions saved. Resume tomorrow or switch model/provider.")
                     break
-                # Per-minute / per-second hint — wait and retry once.
+                # Per-minute / per-second hint â€” wait and retry once.
                 m = re.search(r"retry in ([\d.]+)\s*s", msg, re.IGNORECASE) \
                     or re.search(r"retry_delay.*?seconds:\s*(\d+)", msg, re.DOTALL) \
                     or re.search(r"try again in ([\d]+)m([\d.]+)s", msg)
@@ -696,7 +702,7 @@ def main() -> None:
                         print(f"  [skip] {ex_id}: still failing after wait ({type(e2).__name__})")
                         consecutive_skips += 1
                         if consecutive_skips >= 5:
-                            print(f"\n  [stop] {consecutive_skips} consecutive failures — "
+                            print(f"\n  [stop] {consecutive_skips} consecutive failures â€” "
                                   f"likely daily cap on {args.model}. Predictions saved.")
                             break
                         continue
@@ -722,7 +728,7 @@ def main() -> None:
             row["id"] = ex_id
             rows.append(row)
 
-            # Per-category running accuracy — meaningful signal during partial runs.
+            # Per-category running accuracy â€” meaningful signal during partial runs.
             cat_seen: dict[str, list[bool]] = defaultdict(list)
             for r in rows:
                 cat_seen[r["category"]].append(bool(r["correct"]))
@@ -743,7 +749,7 @@ def main() -> None:
     report_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
 
     print("\n" + "=" * 60)
-    print(f"REPORT — {args.model}")
+    print(f"REPORT â€” {args.model}")
     print("=" * 60)
     print(json.dumps(summary, indent=2))
     print(f"\nSaved: {report_path.relative_to(ROOT)}")
