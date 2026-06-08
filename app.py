@@ -133,23 +133,37 @@ def load_live_model(model_name_or_path):
         return
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
-    from peft import PeftModel
+    from peft import PeftConfig, PeftModel
     
-    print(f"Loading tokenizer for {model_name_or_path}...")
-    tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, trust_remote_code=True)
+    print(f"Loading {model_name_or_path}...")
+    try:
+        peft_config = PeftConfig.from_pretrained(model_name_or_path)
+        base_model_id = peft_config.base_model_name_or_path
+        is_adapter = True
+    except Exception:
+        base_model_id = model_name_or_path
+        is_adapter = False
+
+    print(f"Loading tokenizer for {base_model_id}...")
+    tokenizer = AutoTokenizer.from_pretrained(base_model_id, trust_remote_code=True)
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
         
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"Loading base model {model_name_or_path} on {device}...")
+    print(f"Loading base model {base_model_id} on {device}...")
     
-    # Try loading base or adapter
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name_or_path,
+    base_model = AutoModelForCausalLM.from_pretrained(
+        base_model_id,
         torch_dtype=torch.bfloat16 if device == "cuda" else torch.float32,
         device_map="auto" if device == "cuda" else None,
         trust_remote_code=True
     )
+    
+    if is_adapter:
+        print(f"Loading adapter weights from {model_name_or_path}...")
+        model = PeftModel.from_pretrained(base_model, model_name_or_path)
+    else:
+        model = base_model
 
 def live_predict(query, available_tools, model_path):
     global model, tokenizer, device

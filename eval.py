@@ -235,16 +235,32 @@ class HFBackend(Backend):
 
     def __init__(self, model_name: str, device: str = "cuda"):
         from transformers import AutoModelForCausalLM, AutoTokenizer
+        from peft import PeftConfig, PeftModel
         import torch
+        
+        try:
+            peft_config = PeftConfig.from_pretrained(model_name)
+            base_model_id = peft_config.base_model_name_or_path
+            is_adapter = True
+        except Exception:
+            base_model_id = model_name
+            is_adapter = False
+
         self.tokenizer = AutoTokenizer.from_pretrained(
-            model_name, trust_remote_code=True
+            base_model_id, trust_remote_code=True
         )
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_name,
+        base_model = AutoModelForCausalLM.from_pretrained(
+            base_model_id,
             torch_dtype=torch.bfloat16,
             device_map=device,
             trust_remote_code=True,
         )
+        
+        if is_adapter:
+            self.model = PeftModel.from_pretrained(base_model, model_name)
+        else:
+            self.model = base_model
+            
         self.device = device
         if self.tokenizer.pad_token_id is None:
             self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
