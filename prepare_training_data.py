@@ -242,33 +242,39 @@ def parse_apigen_mt(path: Path) -> Iterator[dict[str, Any]]:
             if not isinstance(convo, list) or len(convo) < 2:
                 continue
 
-            # Find the last assistant turn that contains tool calls — that's our target.
-            history: list[dict[str, str]] = []
-            target_calls: list[dict[str, Any]] | None = None
+            # Parse conversation step-by-step.
+            # Train on the FIRST turn where assistant makes tool calls.
+            history: list[dict[str, Any]] = []
+            target_calls: list[dict[str, Any]] = []
+            parsing_calls = False
+
             for turn in convo:
                 role = turn.get("role") or turn.get("from")
                 content = turn.get("content") or turn.get("value") or ""
+                
                 if role in ("user", "human"):
+                    if parsing_calls:
+                        break  # we finished parsing the first batch of tool calls
                     history.append({"role": "user", "content": str(content)})
                 elif role in ("assistant", "gpt", "model"):
-                    tc = turn.get("tool_calls") or turn.get("function_calls")
-                    if tc:
-                        calls = []
-                        for c in tc:
-                            tool = c.get("name") or (c.get("function") or {}).get("name")
-                            args = c.get("arguments") or (c.get("function") or {}).get("arguments")
-                            if isinstance(args, str):
-                                try:
-                                    args = json.loads(args)
-                                except Exception:
-                                    args = {}
-                            if tool:
-                                calls.append({"tool": tool, "args": args or {}})
-                        if calls:
-                            target_calls = calls
-                            break  # train on the FIRST tool-call turn (simpler)
+                    if parsing_calls:
+                        break
                     history.append({"role": "assistant", "content": str(content)})
-                elif role in ("tool", "function"):
+                elif role == "function_call":
+                    parsing_calls = True
+                    try:
+                        cobj = json.loads(content) if isinstance(content, str) else content
+                        tool = cobj.get("name") or cobj.get("tool")
+                        args = cobj.get("arguments") or cobj.get("args") or {}
+                        if isinstance(args, str):
+                            args = json.loads(args)
+                        if tool:
+                            target_calls.append({"tool": tool, "args": args if isinstance(args, dict) else {}})
+                    except Exception:
+                        pass
+                elif role in ("observation", "tool", "feedback"):
+                    if parsing_calls:
+                        break
                     history.append({"role": "tool", "content": str(content)})
 
             if not target_calls or not history:

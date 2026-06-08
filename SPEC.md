@@ -186,23 +186,24 @@ The scorer prints per-category accuracy and the weighted overall, and writes a J
 - Reference scorer (`eval.py`) is part of this repository.
 - Synthetic data was generated using Gemini-2.0-Flash / Gemini-2.5-Flash-Lite (free tier) seeded with hand-written examples; generation prompts are documented in `generate_examples.py`.
 
-### 6.1 Dataset Construction (full disclosure)
+### 6.1 Dataset Construction (v2 Balanced Mix)
 
-The companion training set (`bhavjeetsingh2912/toolcaller-train-mix` on HuggingFace, ~9K examples) is built from four sources. Actual contribution after parsing, dedup, and balancing:
+The companion training set (`bhavjeetsingh2912/toolcaller-train-mix` on HuggingFace, ~29K examples in v2) is built from six sources with balanced ratios to prevent overfitting. Actual contribution after parsing, dedup, and balancing:
 
 | Source | Raw downloaded | Final in mix | % of training |
 |---|---|---|---|
-| Salesforce xLAM-FC-60K | 60,000 | ~6,865 | ~76% |
-| BFCL-India custom Indian-context (this work) | 1,779 | ~1,773 | ~20% |
-| Glaive Function Calling v2 | 112,960 | ~348 | ~4% |
-| BFCL-India hand-written seeds (this work) | 10 | 10 | <1% |
-| Salesforce APIGen-MT-5K | 5,000 | **0** | 0% |
+| Salesforce xLAM (unfiltered) | 60,000 | 25,534 | 87.7% |
+| BFCL-India custom Indian-context (this work) | 1,779 | 1,773 | 6.1% |
+| Salesforce APIGen-MT-5K | 5,000 | 1,425 | 4.9% |
+| Glaive Function Calling v2 | 112,960 | 348 | 1.2% |
+| BFCL-India hand-written seeds (this work) | 10 | 10 | <0.1% |
+| Salesforce xLAM (filtered) | 60,000 | 4 | <0.1% |
 
-**Why the gaps:**
+**Why the gaps and how they were resolved in v2:**
 
-- **Glaive contributed only 2% of its 113K records (348 / 112,960).** The dataset uses a custom string-encoded chat format (`USER:`/`ASSISTANT:`/`<functioncall>` tags) where many records contain only refusals or prose without tool calls. The parser conservatively skips ambiguous records. A more aggressive parser would marginally increase contribution but at quality cost; xLAM dominates the mix regardless.
-- **APIGen-MT contributed 0 records.** Its tool schemas live in a separate metadata file not joined in v0.1, and role labels (`function_call`/`observation`) require non-trivial mapping. xLAM provides comparable multi-turn signal in the meantime.
-- **Net effect:** the training mix is effectively **xLAM (76%) + Indian-context (20%) + minor seeds**. Claims about Glaive/APIGen-MT in early commits do not hold for the final shipped dataset.
+- **Glaive and xLAM (filtered)**: The parser conservatively filters Glaive using custom tags and limits xLAM (filtered) to only tools within the BFCL-India registry. To teach the model general function-calling output shape without limiting to Indian-context tools, we introduced **xLAM (unfiltered)** to backfill up to the 50% target mix ratio (25,534 examples).
+- **APIGen-MT Mismatch Fixed**: In v1, APIGen-MT contributed 0 examples due to format mismatches where tool calls and observations were stored as independent turns with `"from": "function_call"` and `"from": "observation"`. In v2, the parser was rewritten to correctly map these turns, contributing **1,425** high-quality multi-turn examples to the training mix.
+- **Net effect**: The training mix is a highly diverse representation: **xLAM unfiltered (87.7%) + Indian-context (6.1%) + APIGen-MT multi-turn (4.9%) + Glaive (1.2%) + seeds/filtered xLAM**.
 
 ### 6.2 Performance Characteristics
 

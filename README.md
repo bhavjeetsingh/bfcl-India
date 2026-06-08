@@ -67,7 +67,7 @@ Schemas use strict JSON Schema Draft 2020-12 with regex constraints, enum valida
 
 ## Companion model
 
-**ToolCaller-Qwen-3B** — Qwen2.5-3B fine-tuned with QLoRA on 27K examples (xLAM + Glaive + Indian-context training data). Runs on-prem at $0 inference cost.
+**ToolCaller-Qwen-3B** — Qwen2.5-3B fine-tuned with QLoRA on 29K examples (xLAM + Glaive + APIGen-MT + Indian-context training data). Runs on-prem at $0 inference cost.
 
 - Model: [bhavjeetsingh2912/toolcaller-qwen-3b](https://huggingface.co/bhavjeetsingh2912/toolcaller-qwen-3b)
 - Training data: [bhavjeetsingh2912/toolcaller-train-mix](https://huggingface.co/datasets/bhavjeetsingh2912/toolcaller-train-mix)
@@ -102,6 +102,17 @@ python eval.py \
 ```
 
 Use `--lenient` for production-style scoring (skips schema-compliance gating).
+
+## Gradio Demo Showcase
+
+The repository includes a Gradio interface to interactively test user queries against the Indian-context tools in mock or live model modes.
+
+```bash
+# Run the Gradio dashboard
+python app.py
+```
+
+Open `http://127.0.0.1:7860` in your browser. It includes preset sample queries (Hinglish UPI payments, IRCTC booking, Swiggy returns, GSTIN lookups) to demonstrate model predictions and simulated API execution logs.
 
 ## Known limitations
 
