@@ -490,16 +490,18 @@ def main() -> None:
     # After BFCL-tool filtering, xLAM and Glaive shrink dramatically — Indian
     # data becomes the dominant source. This is correct: the project's whole
     # point is Indian function calling.
-    # v2 mix: 50% xLAM (general shape) + 30% Indian + 20% rest
+    # v2 mix: 40% xLAM (general shape) + 40% Indian + 20% rest
     # xlam_unfiltered teaches the universal function-calling grammar;
     # Indian data teaches the specific BFCL-India tools.
+    # Increased Indian fraction to 40% — v1 at 99% Indian scored 0.635,
+    # so Indian data is critical for BFCL-India-specific tool accuracy.
     target_mix = {
-        "xlam_unfiltered": 0.50,
-        "indian_train": 0.30,
-        "xlam": 0.05,
-        "glaive": 0.05,
-        "apigen_mt": 0.05,
-        "bfcl_seeds": 0.05,
+        "xlam_unfiltered": 0.40,
+        "indian_train": 0.40,
+        "xlam": 0.02,
+        "glaive": 0.08,
+        "apigen_mt": 0.08,
+        "bfcl_seeds": 0.02,
     }
     by_source: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for r in deduped:
