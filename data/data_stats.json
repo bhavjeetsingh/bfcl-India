@@ -9,16 +9,16 @@
   },
   "after_dedup": 67518,
   "final_per_source": {
-    "indian_train": 3988,
-    "xlam_unfiltered": 4000,
-    "apigen_mt": 464,
+    "indian_train": 4120,
+    "xlam_unfiltered": 4120,
     "glaive": 347,
+    "apigen_mt": 824,
     "bfcl_seeds": 8,
     "xlam": 4
   },
-  "train_count": 7930,
-  "val_count": 881,
-  "max_train": 10000,
+  "train_count": 8481,
+  "val_count": 942,
+  "max_train": 30000,
   "val_frac": 0.1,
   "seed": 42
 }
