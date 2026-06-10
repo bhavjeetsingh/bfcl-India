@@ -203,11 +203,13 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--target", type=int, default=1500,
                         help="Total Indian training examples to produce.")
-    parser.add_argument("--batch-size", type=int, default=3)
+    parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--model", default="gemini-2.0-flash-lite",
                         help="Gemini model. Try gemini-2.0-flash-lite first (1500 RPD), "
                              "fall back to gemini-3.1-flash-lite (500 RPD).")
     parser.add_argument("--sleep", type=float, default=4.5)
+    parser.add_argument("--seed", type=int, default=20260530,
+                        help="Seed for RNG")
     args = parser.parse_args()
 
     load_dotenv()
@@ -220,7 +222,7 @@ def main() -> None:
     all_tools = load_tools()
     tools_idx = schema_index(all_tools)
     seeds = load_seeds()
-    rng = random.Random(20260530)
+    rng = random.Random(args.seed)
 
     seen = existing_ids(OUT_PATH)
     print(f"[indian-train] model={args.model} target={args.target} have={len(seen)}")
@@ -244,15 +246,26 @@ def main() -> None:
                 if any(s in msg.lower() for s in ["tokens per day", "requests per day", "rpd", "quota_id\":\"generaterequestsperday"]):
                     print(f"\n  [stop] Daily quota exhausted on {args.model}. {written} examples saved.")
                     break
-                m = re.search(r"retry_delay.*?seconds:\s*(\d+)", msg, re.DOTALL) or \
-                    re.search(r"retry in ([\d.]+)\s*s", msg, re.IGNORECASE)
+                m = re.search(r"retry_delay.*?seconds:\s*(\d+)", msg, re.DOTALL)
+                m_retry = re.search(r"retry in ([\d.]+)\s*s", msg, re.IGNORECASE)
+                m_groq = re.search(r"try again in (?:(\d+)m)?([\d.]+)\s*s", msg, re.IGNORECASE)
+                
+                wait = None
                 if m:
                     wait = float(m.group(1))
+                elif m_retry:
+                    wait = float(m_retry.group(1))
+                elif m_groq:
+                    minutes = float(m_groq.group(1)) if m_groq.group(1) else 0.0
+                    seconds = float(m_groq.group(2))
+                    wait = minutes * 60 + seconds
+
+                if wait is not None:
                     if wait > 120:
                         print(f"\n  [stop] Long backoff ({int(wait/60)} min). {written} saved.")
                         break
                     print(f"\n  [wait] {wait:.0f}s")
-                    time.sleep(wait + 1)
+                    time.sleep(wait + 1.5)
                     continue
                 print(f"\n  [error] {type(e).__name__}: {msg[:150]}")
                 consecutive_skips += 1
