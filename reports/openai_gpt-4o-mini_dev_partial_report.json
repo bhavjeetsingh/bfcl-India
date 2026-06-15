@@ -1,0 +1,31 @@
+{
+  "overall_weighted": 0.6907,
+  "overall_unweighted": 0.6729,
+  "json_validity_pct": 0.9283,
+  "per_category_accuracy": {
+    "irrelevance": 0.6087,
+    "multiple": 0.6579,
+    "multi_turn": 0.8214,
+    "parallel": 0.3684,
+    "simple": 0.7429
+  },
+  "per_category_count": {
+    "irrelevance": 46,
+    "multiple": 76,
+    "multi_turn": 56,
+    "parallel": 38,
+    "simple": 105
+  },
+  "failure_modes": {
+    "arg_values_off": 51,
+    "parallel_mismatch": 24,
+    "json_invalid": 23,
+    "schema_violation": 3,
+    "empty_calls_when_required": 2,
+    "should_have_refused": 1,
+    "wrong_call_count": 1
+  },
+  "n_examples": 321,
+  "model_label": "openai_gpt-4o-mini_dev",
+  "note": "Partial run \u2014 scored 321 of 421 examples"
+}

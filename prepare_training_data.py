@@ -526,8 +526,8 @@ def main() -> None:
     # Increased Indian fraction to 40% — v1 at 99% Indian scored 0.635,
     # so Indian data is critical for BFCL-India-specific tool accuracy.
     target_mix = {
-        "xlam_unfiltered": 0.40,
-        "indian_train": 0.40,
+        "xlam_unfiltered": 0.20,
+        "indian_train": 0.60,
         "xlam": 0.02,
         "glaive": 0.08,
         "apigen_mt": 0.08,

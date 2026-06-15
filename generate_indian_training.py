@@ -187,8 +187,8 @@ def generate_batch(
             continue
         if ex_type != "refusal" and not calls:
             continue
-        if all(validate_call(c, tools_idx)[0] for c in calls):
-            tools_for_this_example = [tools_idx[name] for name in subset]
+        if all(validate_call(c, tools_idx)[0] and c.get("tool") in subset for c in calls):
+            tools_for_this_example = [tools_idx[name] for name in subset if name in tools_idx]
             valid.append({
                 "id": example_id(query, calls),
                 "tools": tools_for_this_example,

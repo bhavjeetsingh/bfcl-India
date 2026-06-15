@@ -6,10 +6,14 @@ flags any issues. Also reports aggregate stats.
 import json
 import random
 import re
+import sys
 from collections import Counter
 from pathlib import Path
 
 import jsonschema
+
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 
 ROOT = Path(__file__).resolve().parent
 TOOLS = {t["name"]: t for t in json.loads((ROOT / "tools.json").read_text(encoding="utf-8"))}
