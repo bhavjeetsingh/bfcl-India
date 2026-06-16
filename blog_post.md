@@ -43,11 +43,11 @@ Here is how the models compare on the BFCL-India Dev split (321 examples, weight
 
 | Model | Parameters | Simple | Multi-Turn | Irrelevance | Multiple | Parallel | **Weighted Overall** |
 |---|---|---|---|---|---|---|---|
-| **GPT-4o-Mini** (Baseline) | Unknown | 74.3% | 82.1% | 60.9% | 65.8% | 36.8% | **69.1%** |
-| **Llama-3.3-70B** (Baseline) | 70B | 70.7% | 95.7% | 75.0% | 68.8% | 56.3% | **74.3%** |
-| **Gemini-2.5-Flash** (Baseline) | Unknown | 74.6% | 83.3% | 100.0% | 70.7% | 52.4% | **75.9%** |
-| **ToolCaller-Qwen-3B-v1** | 3B | 65.7% | 73.2% | 76.1% | 63.2% | 23.7% | **63.5%** |
-| **ToolCaller-Qwen-3B-v2** (Projected) | 3B | - | - | - | - | - | **TBD** |
+| **Gemini-2.5-Flash** (Baseline) | Unknown | 83.6% | 86.1% | 100.0% | 78.1% | 66.7% | **83.0%** |
+| **Llama-3.3-70B** (Baseline) | 70B | 78.1% | 87.5% | 82.6% | 73.7% | 50.0% | **76.7%** |
+| **GPT-4o-Mini** (Baseline) | Unknown | 80.0% | 83.9% | 60.9% | 75.0% | 50.0% | **74.9%** |
+| **ToolCaller-Qwen-3B-v3** | 3B | 69.5% | 78.6% | 73.9% | 76.3% | 42.1% | **70.4%** |
+| **ToolCaller-Qwen-3B-v4** (Projected) | 3B | - | - | - | - | - | **TBD (Target 72%+)** |
 
 *Note: Evaluation of the final v2 model is in progress following the Kaggle training run.*
 

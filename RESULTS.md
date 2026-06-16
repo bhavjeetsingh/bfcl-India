@@ -23,12 +23,13 @@ This is a **+6.89% absolute gain** over the v1 baseline (63.50%) and **officiall
 
 | Model | Size | Overall Weighted | Simple | Multiple | Parallel | Multi-turn | Irrelevance | JSON Validity |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Llama-3.3-70B-Versatile** | 70B | **74.30%** | 70.73% | 68.88% | 56.25% | 95.65% | 75.00% | 100% |
+| **Gemini-2.5-Flash** (Cloud) | — | **82.95%** | 83.64% | 78.05% | 66.67% | 86.11% | 100.00% | 100% |
+| **Llama-3.3-70B-Versatile** | 70B | **76.74%** | 78.10% | 73.68% | 50.00% | 87.50% | 82.61% | 99.69% |
+| **GPT-4o-Mini** (Cloud) | — | **74.87%** | 80.00% | 75.00% | 50.00% | 83.93% | 60.87% | 92.83% |
 | **ToolCaller-Qwen-3B-v3 (Ours)**| **3B** | **70.39%** | 69.52% | **76.32%** | **42.11%** | 78.57% | **73.91%** | **100%** |
-| **GPT-4o-Mini** (Cloud) | — | **69.07%** | 74.29% | 65.79% | 36.84% | 82.14% | 60.87% | 92.83% |
 | *ToolCaller-Qwen-3B-v1* | 3B | *63.50%* | — | — | — | — | — | — |
 
-*Note: Llama-3.3-70B and Gemini-2.5-Flash scores are based on partial dev split runs (n=128 and n=175 respectively) due to API rate constraints. GPT-4o-mini and ToolCaller-Qwen-3B-v3 are scored on the full 321-example dev split.*
+*Note: Gemini-2.5-Flash score is based on a partial dev split run (n=175) due to API rate constraints. Llama-3.3-70B, GPT-4o-mini, and ToolCaller-Qwen-3B-v3 are scored on the full 321-example dev split.*
 
 ---
 
