@@ -166,7 +166,7 @@ def generate_for_tool(
         # Enforce target tool was called.
         if calls[0].get("tool") != target:
             continue
-        if not all(validate_call(c, tools_idx) for c in calls):
+        if not all(validate_call(c, tools_idx)[0] for c in calls):
             continue
         # The TOOLS available to the model in training must include the target + distractors.
         tools_for_record = [tools_idx[t] for t in visible_tools if t in tools_idx]

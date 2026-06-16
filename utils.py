@@ -128,8 +128,10 @@ def validate_call(call: dict[str, Any], tools_idx: dict[str, dict[str, Any]]) ->
     return True, "ok"
 
 
-def load_tools_idx(tools_path: Path) -> dict[str, dict[str, Any]]:
+def load_tools_idx(tools_path: Path | None = None) -> dict[str, dict[str, Any]]:
     """Load tools.json and index by name."""
+    if tools_path is None:
+        tools_path = Path(__file__).resolve().parent / "tools.json"
     return {t["name"]: t for t in json.loads(tools_path.read_text(encoding="utf-8"))}
 
 def compact_tool_schema(tools: list[dict]) -> str:
