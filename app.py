@@ -265,56 +265,89 @@ def set_example_query(query):
 # Gradio interface creation
 custom_css = """
 body {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
     font-family: 'Outfit', 'Inter', sans-serif !important;
+    color: #0f172a !important;
+}
+.gradio-container {
+    max-width: 1200px !important;
+    margin: 0 auto;
 }
 .header-box {
-    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+    background: linear-gradient(135deg, #f97316 0%, #8b5cf6 50%, #2563eb 100%);
     border-radius: 16px;
     padding: 32px 24px;
     color: white;
     text-align: center;
-    box-shadow: 0 10px 30px -10px rgba(139, 92, 246, 0.4);
+    box-shadow: 0 10px 30px -10px rgba(139, 92, 246, 0.3);
     margin-bottom: 24px;
 }
 .header-box h1 {
     font-size: 2.6rem !important;
     font-weight: 800 !important;
     margin: 0 0 12px 0 !important;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
     color: white !important;
 }
 .header-box p {
     font-size: 1.15rem !important;
     margin: 0 !important;
     opacity: 0.95;
-    color: #f1f5f9 !important;
+    color: #f8fafc !important;
 }
 .title-tag {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.25);
     padding: 4px 12px;
     border-radius: 20px;
     font-size: 0.85rem;
-    font-weight: 600;
+    font-weight: 700;
     display: inline-block;
     margin-top: 10px;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
+    color: white !important;
 }
 .metric-badge {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.2);
     padding: 6px 14px;
     border-radius: 10px;
     font-size: 0.9rem;
-    font-weight: 600;
+    font-weight: 700;
     margin: 4px;
     display: inline-block;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: white !important;
+}
+.example-btn {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #334155 !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+    transition: all 0.2s ease !important;
+}
+.example-btn:hover {
+    background: #f1f5f9 !important;
+    border-color: #8b5cf6 !important;
+    color: #8b5cf6 !important;
+    transform: translateY(-1px) !important;
+}
+.primary-btn {
+    background: linear-gradient(135deg, #8b5cf6 0%, #2563eb 100%) !important;
+    color: white !important;
+    border: none !important;
+    font-weight: 700 !important;
+    box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.2) !important;
+    transition: all 0.2s ease !important;
+}
+.primary-btn:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 15px rgba(139, 92, 246, 0.3) !important;
 }
 """
 
 with gr.Blocks(
     css=custom_css,
-    theme=gr.themes.Glass(primary_hue="violet", secondary_hue="indigo", neutral_hue="slate")
+    theme=gr.themes.Soft(primary_hue="violet", secondary_hue="indigo", neutral_hue="slate")
 ) as demo:
     gr.HTML("""
         <div class="header-box">
