@@ -131,3 +131,33 @@ def validate_call(call: dict[str, Any], tools_idx: dict[str, dict[str, Any]]) ->
 def load_tools_idx(tools_path: Path) -> dict[str, dict[str, Any]]:
     """Load tools.json and index by name."""
     return {t["name"]: t for t in json.loads(tools_path.read_text(encoding="utf-8"))}
+
+def compact_tool_schema(tools: list[dict]) -> str:
+    """Convert verbose JSON Schema tool defs to compact one-line-per-param format.
+
+    Before: ~12K chars for 14 tools.  After: ~2K chars.
+    Format: tool_name(param: type[enum], ...) - description
+    """
+    lines = []
+    for t in tools:
+        name = t.get("name", "?")
+        desc = t.get("description", "")
+        params = t.get("parameters", {})
+        props = params.get("properties", {})
+        required = set(params.get("required", []))
+        parts = []
+        for pname, pdef in props.items():
+            if not isinstance(pdef, dict):
+                ptype = str(pdef)
+            else:
+                ptype = pdef.get("type", "any")
+            if not isinstance(pdef, dict):
+                continue
+            enum = pdef.get("enum")
+            if enum:
+                ptype = "|".join(str(e) for e in enum)
+            req = "*" if pname in required else ""
+            parts.append(f"{pname}: {ptype}{req}")
+        sig = ", ".join(parts)
+        lines.append(f"{name}({sig}) - {desc}")
+    return "\n".join(lines)

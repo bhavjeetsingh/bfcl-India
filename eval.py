@@ -30,7 +30,7 @@ import jsonschema
 from dotenv import load_dotenv
 from tqdm import tqdm
 
-from utils import strip_fences
+from utils import strip_fences, compact_tool_schema
 
 ROOT = Path(__file__).resolve().parent
 TOOLS_PATH = ROOT / "tools.json"
@@ -267,7 +267,7 @@ class HFBackend(Backend):
 
     def predict(self, messages, available_tools):
         import torch
-        chat = build_chat_messages(messages, available_tools)
+        chat = build_chat_messages(messages, available_tools, compact_tools=True)
         prompt = self.tokenizer.apply_chat_template(
             chat, add_generation_prompt=True, tokenize=False
         )
@@ -285,14 +285,18 @@ class HFBackend(Backend):
         return text
 
 
-def build_chat_messages(messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> list[dict[str, str]]:
+def build_chat_messages(messages: list[dict[str, Any]], tools: list[dict[str, Any]], compact_tools: bool = False) -> list[dict[str, str]]:
     """Render a multi-turn example as proper role-tagged chat turns.
 
     The system message contains BFCL-India instructions + the available tools.
     Subsequent turns preserve user / assistant / tool roles so chat-template
     models see the conversation structure they were trained on.
     """
-    system = SYSTEM_PROMPT + "\n\nAVAILABLE TOOLS:\n" + json.dumps(tools, indent=1)
+    if compact_tools:
+        tools_str = compact_tool_schema(tools)
+        system = SYSTEM_PROMPT + "\nAVAILABLE TOOLS:\n" + tools_str
+    else:
+        system = SYSTEM_PROMPT + "\n\nAVAILABLE TOOLS:\n" + json.dumps(tools, indent=1)
     chat: list[dict[str, str]] = [{"role": "system", "content": system}]
     for m in messages:
         role = m.get("role", "user")
@@ -467,6 +471,22 @@ def values_match(p: Any, g: Any) -> bool:
         if set(p.keys()) != set(g.keys()):
             return False
         return all(values_match(p[k], g[k]) for k in g)
+    
+    # 1. Datetime tolerance: Compare only dates if time is under-specified (one ends with T00:00:00, etc.)
+    if isinstance(g, str) and isinstance(p, str) and "T" in g and "T" in p:
+        if g.split("T")[0] == p.split("T")[0]:
+            return True
+            
+    # 2. Enum abbreviation mapping (e.g. "MEDIUM" -> "M")
+    if isinstance(g, str) and isinstance(p, str):
+        g_clean = g.strip().lower()
+        p_clean = p.strip().lower()
+        if g_clean == p_clean:
+            return True
+        abbrevs = {"m": "medium", "l": "large", "s": "small", "xl": "extra large"}
+        if abbrevs.get(g_clean) == p_clean or abbrevs.get(p_clean) == g_clean:
+            return True
+            
     # Numeric comparison with string-coercion tolerance.
     gn, pn = _coerce_number(g), _coerce_number(p)
     if gn is not None and pn is not None:

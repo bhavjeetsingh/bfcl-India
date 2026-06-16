@@ -28,6 +28,7 @@ import random
 import re
 from collections import Counter, defaultdict
 from pathlib import Path
+from utils import compact_tool_schema
 from typing import Any, Iterator
 
 ROOT = Path(__file__).resolve().parent
@@ -63,35 +64,7 @@ AVAILABLE TOOLS:
 {tools_compact}"""
 
 
-def _compact_tool_schema(tools: list[dict]) -> str:
-    """Convert verbose JSON Schema tool defs to compact one-line-per-param format.
 
-    Before: ~12K chars for 14 tools.  After: ~2K chars.
-    Format: tool_name(param: type[enum], ...) - description
-    """
-    lines = []
-    for t in tools:
-        name = t.get("name", "?")
-        desc = t.get("description", "")
-        params = t.get("parameters", {})
-        props = params.get("properties", {})
-        required = set(params.get("required", []))
-        parts = []
-        for pname, pdef in props.items():
-            if not isinstance(pdef, dict):
-                ptype = str(pdef)
-            else:
-                ptype = pdef.get("type", "any")
-            if not isinstance(pdef, dict):
-                continue
-            enum = pdef.get("enum")
-            if enum:
-                ptype = "|".join(str(e) for e in enum)
-            req = "*" if pname in required else ""
-            parts.append(f"{pname}: {ptype}{req}")
-        sig = ", ".join(parts)
-        lines.append(f"{name}({sig}) - {desc}")
-    return "\n".join(lines)
 
 
 # ----------------------------------------------------------------------------
@@ -410,7 +383,7 @@ def to_chat_record(rec: dict[str, Any]) -> dict[str, Any] | None:
     The assistant output is the JSON {"calls": [...]} that eval.py expects.
     Uses compact tool schema to keep system prompt short enough for 2048 tokens.
     """
-    tools_compact = _compact_tool_schema(rec["tools"])
+    tools_compact = compact_tool_schema(rec["tools"])
 
     system = SYSTEM_PROMPT_TEMPLATE.format(date=AS_OF_DATE, tools_compact=tools_compact)
     chat = [{"role": "system", "content": system}]
