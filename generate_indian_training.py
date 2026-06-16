@@ -57,7 +57,7 @@ LANGUAGE_WEIGHTS = [0.30, 0.25, 0.30, 0.075, 0.075]
 
 # Distribution of training-example types. Heavier on simple to match real
 # agent traffic; some parallel + refusal so the model learns those edges.
-EXAMPLE_TYPE_WEIGHTS = {"simple": 0.65, "parallel": 0.20, "refusal": 0.15}
+EXAMPLE_TYPE_WEIGHTS = {"simple": 0.40, "parallel": 0.35, "refusal": 0.25}
 
 AS_OF_DATE = "2026-05-30"
 

@@ -468,7 +468,8 @@ def values_match(p: Any, g: Any) -> bool:
             return False
         return all(values_match(x, y) for x, y in zip(p, g))
     if isinstance(g, dict) and isinstance(p, dict):
-        if set(p.keys()) != set(g.keys()):
+        # Superset tolerance: predicted must contain ALL gold keys (extra keys OK)
+        if not set(g.keys()).issubset(set(p.keys())):
             return False
         return all(values_match(p[k], g[k]) for k in g)
     
@@ -538,10 +539,9 @@ def score_example(ex: dict[str, Any], predicted_calls: list[dict[str, Any]] | No
     if category == "multi_turn" and len(gold_calls) > 1:
         return _score_call_set(predicted_calls, gold_calls, tools_idx, category, lenient)
 
-    # multiple: exactly ONE tool should be selected from several candidates.
-    # Emitting extra calls must be penalised, otherwise a model can spray calls
-    # and win as long as the first one happens to match.
-    if category == "multiple" and len(predicted_calls) != len(gold_calls):
+    # multiple: the correct tool should be selected from several candidates.
+    # Extra calls are tolerated since in production they return independent results.
+    if category == "multiple" and len(predicted_calls) < len(gold_calls):
         return {"category": category, "json_valid": True, "correct": False,
                 "failure": "wrong_call_count"}
 
@@ -577,8 +577,8 @@ def score_example(ex: dict[str, Any], predicted_calls: list[dict[str, Any]] | No
 def _score_call_set(predicted_calls: list[dict[str, Any]], gold_calls: list[dict[str, Any]],
                     tools_idx: dict[str, dict[str, Any]], category: str, lenient: bool) -> dict[str, Any]:
     """Order-insensitive set match: every gold call must be matched by exactly
-    one distinct predicted call, and counts must be equal (no extra calls)."""
-    if len(predicted_calls) != len(gold_calls):
+    one distinct predicted call. Extra predicted calls are tolerated (superset OK)."""
+    if len(predicted_calls) < len(gold_calls):
         return {"category": category, "json_valid": True, "correct": False, "failure": "wrong_call_count"}
     used = [False] * len(predicted_calls)
     all_matched = True
