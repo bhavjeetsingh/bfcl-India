@@ -284,7 +284,7 @@ with gr.Blocks(theme=gr.themes.Default(primary_hue="indigo", secondary_hue="slat
                 label="Execution Mode"
             )
             model_path_input = gr.Textbox(
-                value="bhavjeetsingh2912/toolcaller-qwen-3b",
+                value="bhavjeetsingh2912/toolcaller-qwen-3b-v3",
                 label="HuggingFace Model / Local Path (Only used in Live Mode)"
             )
             
