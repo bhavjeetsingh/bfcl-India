@@ -144,6 +144,7 @@ def generate_for_tool(
             "temperature": 0.95,
             "max_output_tokens": 4000,
         },
+        request_options={"timeout": 120.0},
     )
     raw = strip_fences(response.text)
     try:
