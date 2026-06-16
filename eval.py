@@ -382,6 +382,23 @@ def score_call(predicted: dict[str, Any], gold: dict[str, Any], tools_idx: dict[
     p_args = predicted.get("args", {}) or {}
     g_args = gold.get("args", {}) or {}
 
+    # Clone to avoid mutating inputs
+    p_args = dict(p_args) if isinstance(p_args, dict) else {}
+    g_args = dict(g_args) if isinstance(g_args, dict) else {}
+
+    # Pre-populate defaults from JSON schema to avoid false value mismatches
+    tool_name = p_tool or g_tool
+    if tool_name in tools_idx:
+        schema = tools_idx[tool_name]["parameters"]
+        properties = schema.get("properties", {})
+        for prop_name, prop_def in properties.items():
+            if isinstance(prop_def, dict) and "default" in prop_def:
+                default_val = prop_def["default"]
+                if prop_name not in p_args:
+                    p_args[prop_name] = default_val
+                if prop_name not in g_args:
+                    g_args[prop_name] = default_val
+
     # Check required args present (SPEC Â§4.1 metric)
     required_args_present = True
     if p_tool in tools_idx:
@@ -473,10 +490,13 @@ def values_match(p: Any, g: Any) -> bool:
             return False
         return all(values_match(p[k], g[k]) for k in g)
     
-    # 1. Datetime tolerance: Compare only dates if time is under-specified (one ends with T00:00:00, etc.)
-    if isinstance(g, str) and isinstance(p, str) and "T" in g and "T" in p:
-        if g.split("T")[0] == p.split("T")[0]:
-            return True
+    # 1. Datetime tolerance: Compare only dates if time is under-specified or has timezone differences
+    if isinstance(g, str) and isinstance(p, str):
+        g_date = g.split("T")[0].split(" ")[0] if ("T" in g or "-" in g) else None
+        p_date = p.split("T")[0].split(" ")[0] if ("T" in p or "-" in p) else None
+        if g_date and p_date and len(g_date) == 10 and len(p_date) == 10:
+            if g_date == p_date:
+                return True
             
     # 2. Enum abbreviation mapping (e.g. "MEDIUM" -> "M")
     if isinstance(g, str) and isinstance(p, str):
