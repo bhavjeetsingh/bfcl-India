@@ -1,31 +1,30 @@
 {
-  "overall_weighted": 0.6907,
-  "overall_unweighted": 0.6729,
+  "overall_weighted": 0.7487,
+  "overall_unweighted": 0.7321,
   "json_validity_pct": 0.9283,
   "per_category_accuracy": {
-    "simple": 0.7429,
-    "multi_turn": 0.8214,
     "irrelevance": 0.6087,
-    "multiple": 0.6579,
-    "parallel": 0.3684
+    "multiple": 0.75,
+    "multi_turn": 0.8393,
+    "parallel": 0.5,
+    "simple": 0.8
   },
   "per_category_count": {
-    "simple": 105,
-    "multi_turn": 56,
     "irrelevance": 46,
     "multiple": 76,
-    "parallel": 38
+    "multi_turn": 56,
+    "parallel": 38,
+    "simple": 105
   },
   "failure_modes": {
-    "arg_values_off": 51,
-    "parallel_mismatch": 24,
+    "arg_values_off": 38,
     "json_invalid": 23,
+    "parallel_mismatch": 19,
     "schema_violation": 3,
     "empty_calls_when_required": 2,
-    "wrong_call_count": 1,
     "should_have_refused": 1
   },
   "n_examples": 321,
-  "model": "openai/gpt-4o-mini",
-  "provider": "openrouter"
+  "model": "openai_gpt-4o-mini_dev",
+  "note": "RE-SCORED (strict) with fixed eval (multi_turn multi-call, wrong_call_count penalty, numeric-string coercion). Partial run: 321 of 321 dev examples."
 }

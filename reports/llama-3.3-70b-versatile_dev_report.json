@@ -1,29 +1,30 @@
 {
-  "overall_weighted": 0.743,
-  "overall_unweighted": 0.7344,
-  "json_validity_pct": 1.0,
+  "overall_weighted": 0.7674,
+  "overall_unweighted": 0.7601,
+  "json_validity_pct": 0.9969,
   "per_category_accuracy": {
-    "simple": 0.7073,
-    "multi_turn": 0.9565,
-    "irrelevance": 0.75,
-    "multiple": 0.6875,
-    "parallel": 0.5625
+    "irrelevance": 0.8261,
+    "multiple": 0.7368,
+    "multi_turn": 0.875,
+    "parallel": 0.5,
+    "simple": 0.781
   },
   "per_category_count": {
-    "simple": 41,
-    "multi_turn": 23,
-    "irrelevance": 16,
-    "multiple": 32,
-    "parallel": 16
+    "irrelevance": 46,
+    "multiple": 76,
+    "multi_turn": 56,
+    "parallel": 38,
+    "simple": 105
   },
   "failure_modes": {
-    "arg_values_off": 20,
-    "parallel_mismatch": 7,
-    "should_have_refused": 4,
-    "schema_violation": 2,
-    "wrong_call_count": 1
+    "arg_values_off": 43,
+    "parallel_mismatch": 19,
+    "should_have_refused": 8,
+    "schema_violation": 4,
+    "empty_calls_when_required": 2,
+    "json_invalid": 1
   },
-  "n_examples": 128,
-  "model": "llama-3.3-70b-versatile",
-  "provider": "groq"
+  "n_examples": 321,
+  "model": "llama-3.3-70b-versatile_dev",
+  "note": "RE-SCORED (strict) with fixed eval (multi_turn multi-call, wrong_call_count penalty, numeric-string coercion). Partial run: 321 of 321 dev examples."
 }
