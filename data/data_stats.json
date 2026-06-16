@@ -5,19 +5,19 @@
     "xlam_unfiltered": 60000,
     "apigen": 4977,
     "bfcl": 10,
-    "indian": 6299
+    "indian": 7974
   },
-  "after_dedup": 69687,
+  "after_dedup": 71362,
   "final_per_source": {
-    "indian_train": 6288,
+    "indian_train": 7962,
+    "apigen_mt": 1061,
+    "xlam_unfiltered": 2654,
     "glaive": 347,
-    "xlam_unfiltered": 2096,
-    "apigen_mt": 838,
-    "bfcl_seeds": 10,
-    "xlam": 4
+    "xlam": 4,
+    "bfcl_seeds": 10
   },
-  "train_count": 8625,
-  "val_count": 958,
+  "train_count": 10835,
+  "val_count": 1203,
   "max_train": 30000,
   "val_frac": 0.1,
   "seed": 42
