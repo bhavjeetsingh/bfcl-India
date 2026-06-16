@@ -38,13 +38,14 @@ python eval.py --model Qwen/Qwen2.5-3B-Instruct --provider hf --device cuda
 | Multi-turn | 69 | 20% | Trajectory completion across 2-4 conversation turns |
 | Irrelevance | 50 | 10% | Refusal when no tool matches (calibration) |
 
-## Baselines
+## Baselines (Dev Split — 321 examples)
 
-| Model | Params | Weighted accuracy | Notes |
+| Model | Params | Weighted Accuracy | Status |
 |---|---|---|---|
-| GPT-4o-mini | unknown | TBD | Complete dev run |
-| Llama-3.3-70B | 70B | 77.1% (n=71) | Partial |
-| Gemini-2.5-Flash | unknown | 70.0% (n=22) | Partial |
+| **Gemini-2.5-Flash** | unknown | **75.9%** | Partial run (n=175) |
+| **Llama-3.3-70B-Versatile** | 70B | **74.3%** | Partial run (n=128) |
+| **GPT-4o-Mini** | unknown | **69.1%** | Complete run (n=321) |
+| **ToolCaller-Qwen-3B (Ours)** | 3B | **67.9%** | Complete run (n=321) |
 
 ## Tool registry
 
