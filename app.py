@@ -263,9 +263,72 @@ def set_example_query(query):
     return query
 
 # Gradio interface creation
-with gr.Blocks(theme=gr.themes.Default(primary_hue="indigo", secondary_hue="slate")) as demo:
-    gr.Markdown("# 🇮🇳 BFCL-India Function-Calling Dashboard")
-    gr.Markdown("Evaluate open-source LLMs on Indian-context function calling (UPI, PNR, BBPS, GSTIN, Aadhaar).")
+custom_css = """
+body {
+    font-family: 'Outfit', 'Inter', sans-serif !important;
+}
+.header-box {
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+    border-radius: 16px;
+    padding: 32px 24px;
+    color: white;
+    text-align: center;
+    box-shadow: 0 10px 30px -10px rgba(139, 92, 246, 0.4);
+    margin-bottom: 24px;
+}
+.header-box h1 {
+    font-size: 2.6rem !important;
+    font-weight: 800 !important;
+    margin: 0 0 12px 0 !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    color: white !important;
+}
+.header-box p {
+    font-size: 1.15rem !important;
+    margin: 0 !important;
+    opacity: 0.95;
+    color: #f1f5f9 !important;
+}
+.title-tag {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-block;
+    margin-top: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.metric-badge {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 6px 14px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin: 4px;
+    display: inline-block;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+"""
+
+with gr.Blocks(
+    css=custom_css,
+    theme=gr.themes.Glass(primary_hue="violet", secondary_hue="indigo", neutral_hue="slate")
+) as demo:
+    gr.HTML("""
+        <div class="header-box">
+            <h1>🇮🇳 BFCL-India Function-Calling Dashboard</h1>
+            <p>Evaluate open-source LLMs on Indian-context function calling (UPI, PNR, BBPS, GSTIN, Aadhaar)</p>
+            <div>
+                <span class="metric-badge">🎯 Qwen-3B-v3: 70.39% Accuracy</span>
+                <span class="metric-badge">🛡️ 100% JSON Adherence</span>
+                <span class="metric-badge">⚡ 3B Parameters Local</span>
+            </div>
+            <br>
+            <span class="title-tag">State-of-the-Art Local Function Calling</span>
+        </div>
+    """)
     
     with gr.Row():
         with gr.Column(scale=1):
@@ -305,10 +368,10 @@ with gr.Blocks(theme=gr.themes.Default(primary_hue="indigo", secondary_hue="slat
                 "block my debit card AND request a chequebook"
             ]
             for ex in examples:
-                btn = gr.Button(ex, size="sm")
+                btn = gr.Button(ex, size="sm", elem_classes="example-btn")
                 btn.click(fn=lambda e=ex: e, outputs=query_input)
                 
-            submit_btn = gr.Button("Analyze Request", variant="primary")
+            submit_btn = gr.Button("Analyze Request", variant="primary", elem_classes="primary-btn")
             
     with gr.Row():
         with gr.Column():
